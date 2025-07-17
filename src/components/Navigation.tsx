@@ -8,7 +8,7 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'progress', label: 'Progress', icon: Home },
     { id: 'planner', label: 'Planner', icon: Calendar },
     { id: 'skills', label: 'Skills', icon: BookOpen },
     { id: 'exercises', label: 'Exercises', icon: Dumbbell },

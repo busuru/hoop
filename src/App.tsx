@@ -12,7 +12,7 @@ import OfflineStatus from './components/OfflineStatus';
 import offlineService from './services/offlineService';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('progress');
 
   useEffect(() => {
     // Initialize offline service and cache app data
@@ -51,8 +51,8 @@ function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
+      case 'progress':
+        return <Progress />;
       case 'planner':
         return <Planner />;
       case 'skills':
@@ -68,7 +68,7 @@ function App() {
       case 'progress':
         return <Progress />;
       default:
-        return <Dashboard />;
+        return <Progress />;
     }
   };
 
