@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Dumbbell, StretchVertical as Stretch, Home, Youtube, Calendar } from 'lucide-react';
+import { BookOpen, Dumbbell, StretchVertical as Stretch, Home, Youtube, Calendar, TrendingUp } from 'lucide-react';
 
 interface NavigationProps {
   activeTab: string;
@@ -9,7 +9,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'progress', label: 'Progress', icon: Home },
+    { id: 'progress', label: 'Progress', icon: TrendingUp },
     { id: 'planner', label: 'Planner', icon: Calendar },
     { id: 'skills', label: 'Skills', icon: BookOpen },
     { id: 'exercises', label: 'Exercises', icon: Dumbbell },
