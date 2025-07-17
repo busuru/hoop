@@ -26,8 +26,13 @@ class OfflineService {
     window.addEventListener('online', () => this.updateOnlineStatus(true));
     window.addEventListener('offline', () => this.updateOnlineStatus(false));
 
+    // Check if running in StackBlitz environment
+    const isStackBlitz = window.self !== window.top && 
+                        (window.location.hostname.includes('stackblitz') || 
+                         window.location.hostname.includes('webcontainer'));
+
     // Register service worker
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && !isStackBlitz) {
       try {
         this.swRegistration = await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registered successfully');
@@ -55,6 +60,8 @@ class OfflineService {
       } catch (error) {
         console.error('Service Worker registration failed:', error);
       }
+    } else if (isStackBlitz) {
+      console.log('Service Worker registration skipped in StackBlitz environment');
     }
 
     // Initial status update
