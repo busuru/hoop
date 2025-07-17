@@ -1,525 +1,424 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
-import { Calendar, Award, TrendingUp, BarChart3, Smile, Download, Lightbulb, Trophy, User, Star } from 'lucide-react';
-import ProgressTracker from './ProgressTracker';
-// @ts-ignore
-import html2canvas from 'html2canvas';
-// @ts-ignore
-import jsPDF from 'jspdf';
-import './Progress.css'; // For any custom animations (optional)
-
-function getCurrentWeekRange() {
-  const now = new Date();
-  const day = now.getDay();
-  const diffToMonday = (day === 0 ? -6 : 1) - day;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diffToMonday);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return {
-    weekStart: monday.toISOString().slice(0, 10),
-    weekEnd: sunday.toISOString().slice(0, 10),
-  };
-}
+import React, { useState, useEffect } from 'react';
+import { 
+  Play, 
+  Calendar, 
+  TrendingUp, 
+  Award, 
+  Zap, 
+  Target, 
+  Dumbbell, 
+  Clock,
+  CheckCircle,
+  Bell,
+  User,
+  BookOpen,
+  BarChart3,
+  Lightbulb,
+  Trophy,
+  Star,
+  Fire,
+  ChevronRight,
+  Plus
+} from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  // State for dynamic hero summary
-  const [weeklySummary, setWeeklySummary] = useState<any>(null);
-  const [userProgress, setUserProgress] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [badges, setBadges] = useState<any[]>([]);
-
-  // Calendar view state
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-
-  // Mood tracking state
-  const [moodData, setMoodData] = useState<{ [date: string]: number }>({});
-  const moodEmojis = ['😞', '😕', '😐', '🙂', '😃'];
-  const moodLabels = ['Bad', 'Meh', 'Okay', 'Good', 'Great'];
-
-  const progressRef = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState(false);
-
-  async function handleExport(type: 'image' | 'pdf') {
-    if (!progressRef.current) return;
-    setExporting(true);
-    try {
-      const canvas = await html2canvas(progressRef.current, { backgroundColor: '#fff', scale: 2 });
-      if (type === 'image') {
-        const link = document.createElement('a');
-        link.download = 'progress.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      } else {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save('progress.pdf');
-      }
-    } finally {
-      setExporting(false);
-    }
-  }
-
-  useEffect(() => {
-    // Load weekly summaries
-    const summaries = JSON.parse(localStorage.getItem('weeklySummaries') || '[]');
-    const { weekStart, weekEnd } = getCurrentWeekRange();
-    let summary = summaries.find((w: any) => w.weekStart === weekStart && w.weekEnd === weekEnd);
-    if (!summary && summaries.length > 0) summary = summaries[summaries.length - 1];
-    setWeeklySummary(summary);
-
-    // Load user progress
-    const progress = JSON.parse(localStorage.getItem('userProgress') || 'null');
-    setUserProgress(progress);
-
-    // Load user profile (for XP, level, streak)
-    const prof = JSON.parse(localStorage.getItem('userProfile') || 'null');
-    setProfile(prof);
-
-    // Load badges
-    const badgeArr = JSON.parse(localStorage.getItem('badges') || '[]');
-    setBadges(badgeArr);
-  }, []);
-
-  // Load mood data from localStorage
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('moodTracking') || '{}');
-    setMoodData(stored);
-  }, []);
-
-  // Save mood data to localStorage
-  function setMoodForDay(dateISO: string, mood: number) {
-    const updated = { ...moodData, [dateISO]: mood };
-    setMoodData(updated);
-    localStorage.setItem('moodTracking', JSON.stringify(updated));
-  }
-
-  // Prepare mood trend data for the week
-  const weekDates = weeklySummary?.weekStart ? getWeekDates(weeklySummary.weekStart) : getWeekDates(getCurrentWeekRange().weekStart);
-  const moodTrend = weekDates.map(date => {
-    const iso = date.toISOString().slice(0, 10);
-    return {
-      name: date.toLocaleDateString(undefined, { weekday: 'short' }),
-      Mood: moodData[iso] ?? null,
-      iso,
-    };
+  const [user, setUser] = useState({
+    name: 'Alex Jordan',
+    avatar: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+    streak: 7,
+    level: 'Silver',
+    xp: 1400,
+    maxXp: 2000
   });
-  // Fallback: if no mood data, use mock
-  const hasMood = moodTrend.some(d => d.Mood !== null);
-  const fallbackMood = [2, 3, 4, 3, 2, 1, 2];
-  const moodTrendDisplay = hasMood
-    ? moodTrend.map((d, i) => ({ ...d, Mood: d.Mood ?? 2 }))
-    : weekDates.map((date, i) => ({
-        name: date.toLocaleDateString(undefined, { weekday: 'short' }),
-        Mood: fallbackMood[i],
-        iso: date.toISOString().slice(0, 10),
-      }));
 
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const [todaySchedule, setTodaySchedule] = useState([
+    { id: 1, time: '7:00 AM', title: 'Morning Cardio', category: 'cardio', completed: true, color: 'bg-red-500' },
+    { id: 2, time: '4:00 PM', title: 'Shooting Practice', category: 'shooting', completed: false, color: 'bg-orange-500' },
+    { id: 3, time: '6:00 PM', title: 'Strength Training', category: 'strength', completed: false, color: 'bg-purple-500' },
+    { id: 4, time: '7:30 PM', title: 'Agility Drills', category: 'agility', completed: false, color: 'bg-green-500' }
+  ]);
 
-  // Fallbacks if no data
-  const totalMinutes = weeklySummary?.totalCompletedDuration ?? 315;
-  const plannedSessions = weeklySummary?.plannedSessions ?? 7;
-  const completedSessions = weeklySummary?.completedSessions ?? 6;
-  const streak = (userProgress?.streak ?? profile?.streak) ?? 7;
-  const xp = (userProgress?.xp ?? profile?.xp) ?? 1400;
-  const level = (userProgress?.level ?? profile?.level) ?? 5;
+  const [weeklyStats] = useState({
+    hoursThisWeek: 12.5,
+    categories: [
+      { name: 'Shooting', progress: 85, color: 'text-orange-500' },
+      { name: 'Cardio', progress: 70, color: 'text-red-500' },
+      { name: 'Strength', progress: 60, color: 'text-purple-500' },
+      { name: 'Agility', progress: 90, color: 'text-green-500' }
+    ],
+    improvements: [
+      { metric: 'Shooting', change: '+12%', positive: true },
+      { metric: 'Speed', change: '+8%', positive: true },
+      { metric: 'Endurance', change: '+15%', positive: true }
+    ]
+  });
 
-  // Find streak badge
-  const streakBadge = badges.find(b => b.category === 'streak');
+  const [badges] = useState([
+    { id: 1, name: 'Week Warrior', icon: '🔥', earned: true },
+    { id: 2, name: 'Sharpshooter', icon: '🎯', earned: true },
+    { id: 3, name: 'Iron Will', icon: '💪', earned: false },
+    { id: 4, name: 'Speed Demon', icon: '⚡', earned: false }
+  ]);
 
-  // Dynamic category breakdown for pie chart
-  const categoryBreakdown = weeklySummary?.categoryBreakdown ?? {
-    Shooting: 120,
-    Agility: 90,
-    Strength: 60,
-    Cardio: 45,
-  };
-  const categoryData = Object.entries(categoryBreakdown).map(([name, value]) => ({ name, value }));
+  const [notifications] = useState([
+    { id: 1, type: 'reminder', message: 'Don\'t forget your 4 PM shooting practice!', time: '2 hours ago' },
+    { id: 2, type: 'achievement', message: 'Congratulations! You\'ve earned the Week Warrior badge!', time: '1 day ago' },
+    { id: 3, type: 'tip', message: 'Coach tip: Focus on your follow-through for better accuracy', time: '2 days ago' }
+  ]);
 
-  // Dynamic trend data for the week (minutes trained per day)
-  function getWeekDates(startISO: string) {
-    const start = new Date(startISO);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      return d;
-    });
-  }
-  let trendData = [];
-  if (weeklySummary?.weekStart && weeklySummary?.sessions) {
-    const weekDates = getWeekDates(weeklySummary.weekStart);
-    trendData = weekDates.map(date => {
-      const iso = date.toISOString().slice(0, 10);
-      const daySessions = weeklySummary.sessions?.filter((s: any) => s.date === iso) || [];
-      const total = daySessions.reduce((sum: number, s: any) => sum + (s.duration || 0), 0);
-      return {
-        name: date.toLocaleDateString(undefined, { weekday: 'short' }),
-        Minutes: total,
-      };
-    });
-  } else {
-    trendData = [
-      { name: 'Mon', Minutes: 30 },
-      { name: 'Tue', Minutes: 45 },
-      { name: 'Wed', Minutes: 60 },
-      { name: 'Thu', Minutes: 40 },
-      { name: 'Fri', Minutes: 50 },
-      { name: 'Sat', Minutes: 70 },
-      { name: 'Sun', Minutes: 20 },
-    ];
-  }
-  const COLORS = ['#fb923c', '#a78bfa', '#34d399', '#f472b6'];
+  const motivationalQuotes = [
+    "Grind now, shine later 💪",
+    "Champions are made in practice 🏀",
+    "Every shot you don't take is a miss 🎯",
+    "Hard work beats talent when talent doesn't work hard 🔥",
+    "The only way to get better is to practice 💯"
+  ];
 
-  // Helper: get week dates and sessions
-  const sessions = weeklySummary?.sessions ?? [];
+  const [currentQuote, setCurrentQuote] = useState(motivationalQuotes[0]);
 
-  // Helper: get sessions for a given ISO date
-  function getSessionsForDay(iso: string) {
-    return sessions.filter((s: any) => s.date === iso);
-  }
-
-  // Drill-level stats aggregation
-  function getDrillStats() {
-    if (!sessions || sessions.length === 0) {
-      // Fallback mock data
-      return [
-        { name: 'Jump Shot', times: 3, last: '2024-07-01', total: 45 },
-        { name: 'Crossover Dribble', times: 2, last: '2024-07-03', total: 30 },
-        { name: 'Suicide Sprints', times: 1, last: '2024-07-02', total: 15 },
-      ];
-    }
-    const drillMap: Record<string, { name: string; times: number; last: string; total: number }> = {};
-    sessions.forEach((session: any) => {
-      (session.drills || []).forEach((drill: any) => {
-        if (!drillMap[drill.name]) {
-          drillMap[drill.name] = { name: drill.name, times: 0, last: '', total: 0 };
-        }
-        drillMap[drill.name].times += 1;
-        drillMap[drill.name].total += drill.recommendedDuration || drill.duration || 0;
-        if (!drillMap[drill.name].last || session.date > drillMap[drill.name].last) {
-          drillMap[drill.name].last = session.date;
-        }
+  useEffect(() => {
+    // Rotate quotes every 10 seconds
+    const interval = setInterval(() => {
+      setCurrentQuote(prev => {
+        const currentIndex = motivationalQuotes.indexOf(prev);
+        return motivationalQuotes[(currentIndex + 1) % motivationalQuotes.length];
       });
-    });
-    return Object.values(drillMap).sort((a, b) => b.times - a.times);
-  }
-  const drillStats = getDrillStats();
+    }, 10000);
 
-  // Smart coaching insights logic
-  function getCoachingInsights() {
-    if (!weeklySummary || !drillStats || drillStats.length === 0) {
-      return [
-        'Keep up the good work! Try to log more sessions for deeper insights.',
-      ];
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleTaskComplete = (id: number) => {
+    setTodaySchedule(prev => prev.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'Bronze': return 'from-amber-600 to-amber-400';
+      case 'Silver': return 'from-gray-400 to-gray-200';
+      case 'Gold': return 'from-yellow-500 to-yellow-300';
+      default: return 'from-gray-400 to-gray-200';
     }
-    const tips = [];
-    // Example: If a category is low, suggest more of it
-    const cat = weeklySummary.categoryBreakdown || {};
-    if (cat.Passing !== undefined && cat.Passing < 30) {
-      tips.push('Add more passing drills next week for better court vision.');
-    }
-    // Example: If session completion is low
-    if (weeklySummary.completedSessions < weeklySummary.plannedSessions) {
-      tips.push('Aim to complete all planned sessions for a stronger streak.');
-    }
-    // Example: If streak is low
-    if ((userProgress?.streak ?? 0) < 3) {
-      tips.push('Build your streak by training on consecutive days!');
-    }
-    // Example: If a drill is repeated too often
-    if (drillStats[0]?.times > 4) {
-      tips.push(`Try mixing up your drills—${drillStats[0].name} is your most repeated!`);
-    }
-    if (tips.length === 0) {
-      tips.push('Great job! Keep challenging yourself with new drills and goals.');
-    }
-    return tips;
-  }
-  const coachingInsights = getCoachingInsights();
+  };
+
+  const getProgressPercentage = () => (user.xp / user.maxXp) * 100;
 
   return (
-    <div ref={progressRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      {/* Hero Summary Card */}
-      <div className="bg-gradient-to-br from-orange-100 to-purple-100 dark:from-orange-900 dark:to-purple-900 rounded-2xl shadow-lg p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-8 animate-slide-up">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Your Progress</h2>
-          <div className="flex items-center gap-4 mb-2">
-            <Award className="text-orange-500" size={32} />
-            <span className="text-lg font-semibold">Streak: <span className="text-orange-600">{streak} days</span></span>
-            <Trophy className="text-yellow-500" size={28} />
-            <span className="text-lg font-semibold">Level: <span className="text-yellow-600">{level}</span></span>
-          </div>
-          <div className="flex items-center gap-4">
-            <BarChart3 className="text-purple-500" size={28} />
-            <span className="text-lg">Total Minutes This Week: <span className="font-bold text-purple-700">{totalMinutes}</span></span>
-            <TrendingUp className="text-green-500" size={28} />
-            <span className="text-lg">Sessions: <span className="font-bold text-green-700">{completedSessions}/{plannedSessions}</span></span>
-          </div>
-        </div>
-        {/* XP Progress Bar */}
-        <div className="w-full md:w-1/3 flex flex-col items-center">
-          <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-            <div className="bg-gradient-to-r from-orange-400 to-purple-500 h-4 rounded-full transition-all" style={{ width: `${Math.min((xp / 2000) * 100, 100)}%` }}></div>
-          </div>
-          <span className="text-sm text-gray-700">XP: {xp} / 2000</span>
-        </div>
-      </div>
-
-      {/* Category Pie Chart */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><BarChart3 className="text-orange-400" /> Category Breakdown</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-              {categoryData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Hero Welcome Section */}
+      <div className="relative overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-20"
+          style={{
+            backgroundImage: 'url(https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop)'
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-600/30 to-purple-600/30" />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            {/* User Info */}
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <img 
+                  src={user.avatar} 
+                  alt={user.name}
+                  className="w-20 h-20 rounded-full border-4 border-white shadow-xl"
+                />
+                <div className="absolute -bottom-2 -right-2 bg-orange-500 text-white rounded-full p-2">
+                  <Fire size={16} />
                 </div>
-
-      {/* Weekly/Monthly Trend Graph */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><TrendingUp className="text-green-400" /> Weekly Trend</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={trendData}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="Minutes" stroke="#fb923c" strokeWidth={3} dot={{ r: 6 }} />
-          </LineChart>
-        </ResponsiveContainer>
+              </div>
+              
+              <div className="text-white">
+                <h1 className="text-3xl font-bold mb-2">Welcome back, {user.name}!</h1>
+                <div className="flex items-center gap-4 text-lg">
+                  <div className="flex items-center gap-2">
+                    <Fire className="text-orange-400" size={20} />
+                    <span>{user.streak} day streak</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="text-yellow-400" size={20} />
+                    <span>{user.level} Level</span>
+                  </div>
                 </div>
-
-      {/* Calendar View */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Calendar className="text-blue-400" /> Training Calendar</h3>
-        <div className="flex justify-between items-center mb-4">
-          {weekDates.map((date, idx) => {
-            const iso = date.toISOString().slice(0, 10);
-            const daySessions = getSessionsForDay(iso);
-            const isToday = iso === new Date().toISOString().slice(0, 10);
-            return (
-              <button
-                key={iso}
-                onClick={() => setSelectedDay(iso)}
-                className={`flex flex-col items-center px-2 py-1 rounded-lg transition-all focus:outline-none border-2
-                  ${isToday ? 'border-blue-500' : 'border-transparent'}
-                  ${daySessions.length > 0 ? 'bg-blue-50 text-blue-700 font-bold shadow' : 'bg-gray-50 text-gray-400'}
-                  hover:bg-blue-100`}
-              >
-                <span className="text-xs uppercase tracking-wide">{date.toLocaleDateString(undefined, { weekday: 'short' })}</span>
-                <span className="text-lg">{date.getDate()}</span>
-                {daySessions.length > 0 && <span className="w-2 h-2 rounded-full bg-blue-500 mt-1"></span>}
-              </button>
-          );
-        })}
-      </div>
-        {selectedDay && (
-          <div className="bg-blue-50 rounded-xl p-4 mb-2 animate-fade-in">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-blue-700">{new Date(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</span>
-              <button className="text-xs text-blue-400 hover:underline" onClick={() => setSelectedDay(null)}>Close</button>
+              </div>
             </div>
-            {getSessionsForDay(selectedDay).length > 0 ? (
-              <ul className="space-y-2">
-                {getSessionsForDay(selectedDay).map((session: any) => (
-                  <li key={session.id} className="bg-white rounded-lg shadow p-3 flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <span className="font-bold text-blue-700">{session.name || 'Session'}</span>
-                      <span className="ml-2 text-xs text-gray-500">{session.time || ''}</span>
-                      <div className="text-xs text-gray-500">{session.drills?.length || 0} drills</div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm text-blue-600 font-semibold">{session.duration || 0} min</span>
-                      {session.drills && session.drills.length > 0 && (
-                        <ul className="text-xs text-gray-700 mt-1">
-                          {session.drills.map((drill: any) => (
-                            <li key={drill.id}>• {drill.name}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-gray-400 text-sm">No session for this day.</div>
-            )}
+
+            {/* Level Progress Ring */}
+            <div className="flex items-center gap-6">
+              <div className="relative w-24 h-24">
+                <svg className="w-24 h-24 transform -rotate-90">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="6"
+                    fill="none"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="url(#gradient)"
+                    strokeWidth="6"
+                    fill="none"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - getProgressPercentage() / 100)}`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000"
+                  />
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#f97316" />
+                      <stop offset="100%" stopColor="#a855f7" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="text-sm font-bold">{Math.round(getProgressPercentage())}%</div>
+                    <div className="text-xs">XP</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Personal Records & Milestones */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
-        <div className="flex flex-col items-center">
-          <Trophy className="text-yellow-500 mb-2" size={32} />
-          <span className="font-bold text-lg">Longest Streak</span>
-          <span className="text-2xl text-orange-600 font-extrabold">{userProgress?.longestStreak ?? 14} days</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <BarChart3 className="text-purple-500 mb-2" size={32} />
-          <span className="font-bold text-lg">Most Minutes</span>
-          <span className="text-2xl text-purple-700 font-extrabold">{userProgress?.mostMinutes ?? 120}</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <Star className="text-pink-500 mb-2" size={32} />
-          <span className="font-bold text-lg">Most Shots</span>
-          <span className="text-2xl text-pink-700 font-extrabold">{userProgress?.mostShots ?? 500}</span>
-        </div>
-      </div>
-
-      {/* Drill-level Stats */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><User className="text-gray-400" /> Drill Stats</h3>
-        {drillStats.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left">
-              <thead>
-                <tr className="text-gray-500 border-b">
-                  <th className="py-2 pr-4">Drill</th>
-                  <th className="py-2 pr-4">Times Done</th>
-                  <th className="py-2 pr-4">Last Practiced</th>
-                  <th className="py-2 pr-4">Total Time (min)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {drillStats.map(drill => (
-                  <tr key={drill.name} className="border-b last:border-0">
-                    <td className="py-2 pr-4 font-semibold text-gray-800">{drill.name}</td>
-                    <td className="py-2 pr-4">{drill.times}</td>
-                    <td className="py-2 pr-4">{drill.last ? new Date(drill.last).toLocaleDateString() : '-'}</td>
-                    <td className="py-2 pr-4">{Math.round(drill.total / 60)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Motivational Quote */}
+          <div className="mt-8 text-center">
+            <div className="inline-block bg-white/10 backdrop-blur-sm rounded-full px-8 py-4 text-white text-xl font-semibold animate-pulse">
+              {currentQuote}
+            </div>
           </div>
-        ) : (
-          <div className="h-32 flex items-center justify-center text-gray-400">No drill stats available.</div>
-        )}
+        </div>
       </div>
 
-      {/* Mood Tracking */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Smile className="text-pink-400" /> Mood Tracking</h3>
-        <div className="mb-4 flex items-center gap-4">
-          <span className="font-semibold">How do you feel today?</span>
-          {moodEmojis.map((emoji, idx) => (
-            <button
-              key={emoji}
-              className={`text-2xl px-2 py-1 rounded-full transition-all focus:outline-none ${moodData[todayISO] === idx ? 'bg-pink-100 scale-110' : 'hover:bg-pink-50'}`}
-              onClick={() => setMoodForDay(todayISO, idx)}
-              aria-label={moodLabels[idx]}
-            >
-              {emoji}
-            </button>
-          ))}
-          {moodData[todayISO] !== undefined && (
-            <span className="ml-2 text-pink-500 font-semibold">{moodLabels[moodData[todayISO]]}</span>
-          )}
-        </div>
-        <div className="h-32">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={moodTrendDisplay}>
-              <XAxis dataKey="name" />
-              <YAxis domain={[0, 4]} ticks={[0, 1, 2, 3, 4]} tickFormatter={i => moodEmojis[i]} />
-              <Tooltip formatter={(_, __, props) => moodLabels[props.payload.Mood]} />
-              <Line type="monotone" dataKey="Mood" stroke="#ec4899" strokeWidth={3} dot={{ r: 8, fill: '#f472b6' }} />
-            </LineChart>
-          </ResponsiveContainer>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Today's Planner Snapshot */}
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <Calendar className="text-orange-500" />
+                  Today's Schedule
+                </h2>
+                <button className="text-orange-500 hover:text-orange-600 flex items-center gap-1">
+                  View All <ChevronRight size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {todaySchedule.map((task, index) => (
+                  <div 
+                    key={task.id}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 ${
+                      task.completed 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-gray-50 border-gray-200 hover:border-orange-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => toggleTaskComplete(task.id)}
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          task.completed
+                            ? 'bg-green-500 border-green-500 text-white'
+                            : 'border-gray-300 hover:border-orange-500'
+                        }`}
+                      >
+                        {task.completed && <CheckCircle size={16} />}
+                      </button>
+                      <div className={`w-3 h-3 rounded-full ${task.color}`} />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className={`font-semibold ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                          {task.title}
+                        </h3>
+                        <span className="text-sm text-gray-500">{task.time}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 capitalize">{task.category}</p>
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
 
-      {/* Gamification (badges, XP, progress bar) */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Award className="text-orange-400" /> Gamification</h3>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          {/* Badges */}
-                  <div className="flex-1">
-            <div className="font-semibold mb-2 text-gray-700">Badges Earned</div>
-            <div className="flex flex-wrap gap-3">
-              {(badges.length > 0 ? badges : [
-                { id: 'mock1', name: 'Streak Starter', icon: '🔥', description: '3-day streak' },
-                { id: 'mock2', name: 'First Session', icon: '🏅', description: 'Completed first session' },
-                { id: 'mock3', name: 'Sharpshooter', icon: '🎯', description: '100 shots made' },
-              ]).map(badge => (
-                <div key={badge.id} className="flex flex-col items-center bg-gradient-to-br from-orange-100 to-pink-100 rounded-xl p-3 shadow hover:scale-105 transition-transform cursor-pointer" title={badge.description}>
-                  <span className="text-3xl mb-1">{badge.icon || '🏅'}</span>
-                  <span className="text-xs font-bold text-orange-600">{badge.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* XP per session/drill summary */}
-          <div className="flex-1">
-            <div className="font-semibold mb-2 text-gray-700">XP Summary</div>
-            <div className="flex flex-col gap-2">
-              <span className="text-sm">XP this week: <span className="font-bold text-orange-500">{weeklySummary?.xpEarned ?? 120}</span></span>
-              <span className="text-sm">XP per session: <span className="font-bold text-purple-500">{weeklySummary?.xpPerSession ?? 20}</span></span>
-              <span className="text-sm">XP per drill: <span className="font-bold text-pink-500">{weeklySummary?.xpPerDrill ?? 5}</span></span>
-            </div>
+            {/* Progress & Analytics Preview */}
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <BarChart3 className="text-purple-500" />
+                Weekly Progress
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Hours Trained */}
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <Clock size={24} />
+                    <span className="text-3xl font-bold">{weeklyStats.hoursThisWeek}h</span>
                   </div>
-          {/* Progress bar to next level */}
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="font-semibold mb-2 text-gray-700">Level Progress</div>
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-              <div className="bg-gradient-to-r from-orange-400 to-purple-500 h-4 rounded-full transition-all animate-pulse" style={{ width: `${Math.min((xp / 2000) * 100, 100)}%` }}></div>
+                  <p className="text-blue-100">Hours This Week</p>
+                </div>
+
+                {/* Category Progress */}
+                <div className="space-y-4">
+                  {weeklyStats.categories.map((category) => (
+                    <div key={category.name} className="flex items-center justify-between">
+                      <span className="font-medium text-gray-700">{category.name}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full bg-gradient-to-r from-orange-400 to-purple-500 transition-all duration-1000`}
+                            style={{ width: `${category.progress}%` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-semibold ${category.color}`}>
+                          {category.progress}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Improvement Badges */}
+              <div className="mt-6 flex flex-wrap gap-3">
+                {weeklyStats.improvements.map((improvement) => (
+                  <div 
+                    key={improvement.metric}
+                    className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2"
+                  >
+                    <TrendingUp size={16} />
+                    {improvement.metric} {improvement.change}
+                  </div>
+                ))}
+              </div>
             </div>
-            <span className="text-sm text-gray-700">XP: {xp} / 2000</span>
-            <span className="text-xs text-yellow-600 font-bold">Level {level}</span>
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Actions</h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
+                  <Play size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">Start Workout</span>
+                </button>
+                
+                <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
+                  <Calendar size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">Open Planner</span>
+                </button>
+                
+                <button className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
+                  <BookOpen size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">Exercise Library</span>
+                </button>
+                
+                <button className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
+                  <Plus size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">Add Session</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-8">
+            {/* Video of the Day */}
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Play className="text-red-500" />
+                Video of the Day
+              </h2>
+              
+              <div className="relative rounded-xl overflow-hidden mb-4">
+                <img 
+                  src="https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=400&h=225&fit=crop"
+                  alt="Basketball training video"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                  <button className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                    <Play size={24} className="text-white ml-1" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                <div className="flex items-start gap-3">
+                  <Lightbulb className="text-yellow-600 mt-1" size={20} />
+                  <div>
+                    <h4 className="font-semibold text-yellow-800 mb-1">Tip of the Day</h4>
+                    <p className="text-yellow-700 text-sm">
+                      Keep your shooting elbow directly under the ball for better accuracy and consistency.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gamification & Rewards */}
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Award className="text-yellow-500" />
+                Achievements
+              </h2>
+              
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {badges.map((badge) => (
+                  <div 
+                    key={badge.id}
+                    className={`p-4 rounded-xl text-center transition-all ${
+                      badge.earned 
+                        ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg' 
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">{badge.icon}</div>
+                    <div className="text-xs font-semibold">{badge.name}</div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="bg-blue-50 rounded-xl p-4">
+                <h4 className="font-semibold text-blue-800 mb-2">Next Milestone</h4>
+                <p className="text-blue-600 text-sm">Complete 3 more strength sessions to unlock "Iron Will" badge!</p>
+                <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '60%' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Notifications Panel */}
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Bell className="text-blue-500" />
+                Notifications
+              </h2>
+              
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {notifications.map((notification) => (
+                  <div 
+                    key={notification.id}
+                    className="p-3 bg-gray-50 rounded-lg border-l-4 border-orange-400"
+                  >
+                    <p className="text-sm text-gray-800 mb-1">{notification.message}</p>
+                    <span className="text-xs text-gray-500">{notification.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Smart Coaching Insights */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Lightbulb className="text-yellow-400" /> Coaching Insights</h3>
-        <ul className="space-y-2">
-          {coachingInsights.map((tip, i) => (
-            <li key={i} className="bg-yellow-50 border-l-4 border-yellow-400 rounded p-3 text-yellow-800 flex items-center gap-2 animate-fade-in">
-              <Lightbulb className="text-yellow-400" size={18} />
-              <span>{tip}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Export as PDF/Image */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 flex items-center justify-between animate-fade-in">
-        <div className="flex items-center gap-2">
-          <Download className="text-blue-400" />
-          <span className="font-bold text-lg">Export Progress</span>
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="bg-gradient-to-r from-orange-400 to-purple-500 text-white px-6 py-2 rounded-lg font-semibold shadow hover:scale-105 transition-transform flex items-center gap-2"
-            onClick={() => handleExport('image')}
-            disabled={exporting}
-          >
-            {exporting ? <span className="loader border-2 border-white border-t-transparent rounded-full w-4 h-4 animate-spin"></span> : null}
-            Export as Image
-          </button>
-          <button
-            className="bg-gradient-to-r from-purple-400 to-orange-500 text-white px-6 py-2 rounded-lg font-semibold shadow hover:scale-105 transition-transform flex items-center gap-2"
-            onClick={() => handleExport('pdf')}
-            disabled={exporting}
-          >
-            {exporting ? <span className="loader border-2 border-white border-t-transparent rounded-full w-4 h-4 animate-spin"></span> : null}
-            Export as PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Legacy Progress Tracker (optional) */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
-        <ProgressTracker />
       </div>
     </div>
   );
