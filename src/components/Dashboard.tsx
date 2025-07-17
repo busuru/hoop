@@ -1,25 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Play, 
-  Calendar, 
-  TrendingUp, 
-  Award, 
-  Zap, 
-  Target, 
-  Dumbbell, 
-  Clock,
-  CheckCircle,
-  Bell,
-  User,
-  BookOpen,
-  BarChart3,
-  Lightbulb,
-  Trophy,
-  Star,
-  Fire,
-  ChevronRight,
-  Plus
-} from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, Zap, Target, Dumbbell, Clock, CheckCircle, Bell, User, BookOpen, BarChart3, Lightbulb, Trophy, Star, Siren as Fire, ChevronRight, Plus } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const [user, setUser] = useState({
