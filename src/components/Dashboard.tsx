@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Calendar, TrendingUp, Award, Zap, Target, Dumbbell, Clock, CheckCircle, Bell, User, BookOpen, BarChart3, Lightbulb, Trophy, Star, Siren as Fire, ChevronRight, Plus } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, Zap, Target, Dumbbell, Clock, CheckCircle, Bell, User, BookOpen, BarChart3, Lightbulb, Trophy, Star, ChevronRight, Plus } from 'lucide-react';
+
+// Simple Fire icon replacement
+const Fire = ({ size = 20, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12 2C13.1 2 14 2.9 14 4C14 5.3 13.4 6.4 12.5 7.1C13.4 7.8 14 8.9 14 10.1C14 11.1 13.6 12 12.9 12.6C13.8 13.2 14.4 14.2 14.4 15.4C14.4 17.4 12.8 19 10.8 19C8.8 19 7.2 17.4 7.2 15.4C7.2 14.2 7.8 13.2 8.7 12.6C8 12 7.6 11.1 7.6 10.1C7.6 8.9 8.2 7.8 9.1 7.1C8.2 6.4 7.6 5.3 7.6 4C7.6 2.9 8.5 2 9.6 2H12Z"/>
+  </svg>
+);
 
 const Dashboard: React.FC = () => {
   const [user, setUser] = useState({

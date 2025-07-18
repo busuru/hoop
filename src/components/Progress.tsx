@@ -1,13 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
 // Recharts imports (placeholders for now)
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+// import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 import { Calendar, Award, TrendingUp, BarChart3, Smile, Download, Lightbulb, Trophy, User, Star } from 'lucide-react';
 import ProgressTracker from './ProgressTracker';
-// @ts-ignore
-import html2canvas from 'html2canvas';
-// @ts-ignore
-import jsPDF from 'jspdf';
+// import html2canvas from 'html2canvas';
+// import jsPDF from 'jspdf';
 import './Progress.css'; // For any custom animations (optional)
+
+// Simple chart placeholder components
+const SimpleChart = ({ data, type }: { data: any[], type: string }) => (
+  <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+    <div className="text-center">
+      <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+      <p className="text-gray-500">{type} Chart</p>
+      <p className="text-sm text-gray-400">{data.length} data points</p>
+    </div>
+  </div>
+);
 
 function getCurrentWeekRange() {
   const now = new Date();
@@ -45,18 +54,8 @@ const Progress: React.FC = () => {
     if (!progressRef.current) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(progressRef.current, { backgroundColor: '#fff', scale: 2 });
-      if (type === 'image') {
-        const link = document.createElement('a');
-        link.download = 'progress.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      } else {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save('progress.pdf');
-      }
+      // Placeholder for export functionality
+      alert(`Export as ${type} - Feature coming soon!`);
     } finally {
       setExporting(false);
     }
@@ -271,31 +270,13 @@ const Progress: React.FC = () => {
       {/* Category Pie Chart */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><BarChart3 className="text-orange-400" /> Category Breakdown</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-              {categoryData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+        <SimpleChart data={categoryData} type="Category Breakdown" />
       </div>
 
       {/* Weekly/Monthly Trend Graph */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow p-6 mb-8 animate-fade-in">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><TrendingUp className="text-green-400" /> Weekly Trend</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={trendData}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="Minutes" stroke="#fb923c" strokeWidth={3} dot={{ r: 6 }} />
-          </LineChart>
-        </ResponsiveContainer>
+        <SimpleChart data={trendData} type="Weekly Trend" />
       </div>
 
       {/* Calendar View */}
@@ -427,14 +408,7 @@ const Progress: React.FC = () => {
           )}
         </div>
         <div className="h-32">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={moodTrendDisplay}>
-              <XAxis dataKey="name" />
-              <YAxis domain={[0, 4]} ticks={[0, 1, 2, 3, 4]} tickFormatter={i => moodEmojis[i]} />
-              <Tooltip formatter={(_, __, props) => moodLabels[props.payload.Mood]} />
-              <Line type="monotone" dataKey="Mood" stroke="#ec4899" strokeWidth={3} dot={{ r: 8, fill: '#f472b6' }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <SimpleChart data={moodTrendDisplay} type="Mood Trend" />
         </div>
       </div>
 

@@ -20,25 +20,29 @@
     <meta name="msapplication-TileColor" content="#1e40af" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
     
-    <title>Basketball Trainer - Complete Training App</title>
+    <title>Basketball Trainer</title>
+    <style>
+      /* Prevent flash of unstyled content */
+      #root {
+        min-height: 100vh;
+      }
+      
+      /* Loading fallback */
+      .loading-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="loading-fallback">
+        <div>Loading Basketball Trainer...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
-      }
-    </script>
   </body>
 </html>
