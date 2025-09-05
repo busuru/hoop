@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { Play, Clock, Star, Target, Shield, Users, Footprints, Search, Filter } from 'lucide-react';
+import { Play, Clock, Star, Target, Shield, Users, Footprints, Search, Filter, Youtube, X } from 'lucide-react';
 import { skills } from '../data/basketballData';
 import { Skill } from '../types';
+import { searchYouTubeVideos } from '../services/youtubeApi';
+import { YouTubeVideo } from '../types';
 
 const SkillsLibrary: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+  const [videos, setVideos] = useState<YouTubeVideo[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const categories = [
     { id: 'all', name: 'All Skills', icon: Target },
@@ -47,6 +53,45 @@ const SkillsLibrary: React.FC = () => {
     const categoryData = categories.find(cat => cat.id === category);
     const Icon = categoryData?.icon || Target;
     return <Icon size={20} />;
+  };
+
+  const loadSkillVideos = async (skill: Skill) => {
+    setLoadingVideos(true);
+    setVideoError(null);
+    
+    try {
+      const searchQuery = `how to ${skill.name} basketball tutorial`;
+      const response = await searchYouTubeVideos(searchQuery);
+      const videoData: YouTubeVideo[] = response.items.map(item => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.medium.url,
+        channelTitle: item.snippet.channelTitle,
+        publishedAt: item.snippet.publishedAt,
+        description: item.snippet.description
+      }));
+      
+      setVideos(videoData);
+    } catch (err) {
+      setVideoError(err instanceof Error ? err.message : 'Failed to load videos');
+    } finally {
+      setLoadingVideos(false);
+    }
+  };
+
+  const handleSkillSelect = (skill: Skill) => {
+    setSelectedSkill(skill);
+    setVideos([]);
+    setVideoError(null);
+    loadSkillVideos(skill);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const truncateTitle = (title: string, maxLength: number = 60) => {
+    return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
   };
 
   return (
@@ -107,7 +152,7 @@ const SkillsLibrary: React.FC = () => {
         {filteredSkills.map((skill) => (
           <div
             key={skill.id}
-            onClick={() => setSelectedSkill(skill)}
+            onClick={() => handleSkillSelect(skill)}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer"
           >
             <div className="flex items-center justify-between mb-4">
@@ -132,7 +177,7 @@ const SkillsLibrary: React.FC = () => {
                 <span>{Math.floor((skill.recommendedDuration || 300) / 60)} min</span>
               </div>
               <span className="text-orange-600 text-sm font-medium">
-                Learn →
+                Watch Videos →
               </span>
             </div>
           </div>
@@ -142,7 +187,7 @@ const SkillsLibrary: React.FC = () => {
       {/* Skill Detail Modal */}
       {selectedSkill && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -151,38 +196,103 @@ const SkillsLibrary: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">{selectedSkill.name}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(selectedSkill.difficulty)}`}>
-                      {selectedSkill.difficulty}
-                    </span>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(selectedSkill.difficulty)}`}>
+                        {selectedSkill.difficulty}
+                      </span>
+                      <span className="text-sm text-gray-500 capitalize">{selectedSkill.category}</span>
+                    </div>
                   </div>
                 </div>
                 <button
-                  onClick={() => setSelectedSkill(null)}
+                  onClick={() => {
+                    setSelectedSkill(null);
+                    setVideos([]);
+                    setSelectedVideo(null);
+                    setVideoError(null);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  <X size={24} />
                 </button>
               </div>
             </div>
             
             <div className="p-6">
-              <p className="text-gray-700 mb-6">{selectedSkill.description}</p>
+              {selectedSkill.description && (
+                <div className="mb-6">
+                  <p className="text-gray-700">{selectedSkill.description}</p>
+                </div>
+              )}
               
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">Instructions</h4>
-                <ol className="space-y-2">
-                  {selectedSkill.instructions.map((instruction, index) => (
-                    <li key={index} className="flex items-start space-x-3">
-                      <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-medium">
-                        {index + 1}
-                      </span>
-                      <span className="text-gray-700">{instruction}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
+              {/* Loading State */}
+              {loadingVideos && (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading tutorial videos...</p>
+                </div>
+              )}
+
+              {/* Error State */}
+              {videoError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <X size={12} className="text-white" />
+                    </div>
+                    <p className="text-red-700">{videoError}</p>
+                  </div>
+                  {videoError.includes('API key') && (
+                    <p className="text-sm text-red-600 mt-2">
+                      Please add your YouTube API key to the environment variables as VITE_YOUTUBE_API_KEY
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Videos Grid */}
+              {!loadingVideos && videos.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Youtube className="text-red-600" size={20} />
+                    Tutorial Videos
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {videos.map((video) => (
+                      <div
+                        key={video.id}
+                        className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => setSelectedVideo(video)}
+                      >
+                        <div className="relative">
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-full h-32 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
+                              <Play size={16} className="text-white ml-1" />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="p-3">
+                          <h5 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
+                            {truncateTitle(video.title, 50)}
+                          </h5>
+                          <p className="text-xs text-gray-600 mb-1">{video.channelTitle}</p>
+                          <p className="text-xs text-gray-500">{formatDate(video.publishedAt)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
-              <div className="mb-6">
+              {/* Tips Section */}
+              {selectedSkill.tips && selectedSkill.tips.length > 0 && (
+                <div className="mb-6">
                 <h4 className="text-lg font-semibold text-gray-900 mb-3">Tips</h4>
                 <ul className="space-y-2">
                   {selectedSkill.tips.map((tip, index) => (
@@ -192,7 +302,8 @@ const SkillsLibrary: React.FC = () => {
                     </li>
                   ))}
                 </ul>
-              </div>
+                </div>
+              )}
               
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -200,12 +311,53 @@ const SkillsLibrary: React.FC = () => {
                   <span>Recommended: {Math.floor((selectedSkill.recommendedDuration || 300) / 60)} minutes</span>
                 </div>
                 <button
-                  onClick={() => setSelectedSkill(null)}
+                  onClick={() => {
+                    setSelectedSkill(null);
+                    setVideos([]);
+                    setSelectedVideo(null);
+                    setVideoError(null);
+                  }}
                   className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
                 >
-                  Got it!
+                  Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Player Modal */}
+      {selectedVideo && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                  <Youtube size={16} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 line-clamp-1">{selectedVideo.title}</h3>
+                  <p className="text-sm text-gray-600">{selectedVideo.channelTitle}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedVideo(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="relative" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${selectedVideo.id}?autoplay=1&rel=0`}
+                title={selectedVideo.title}
+                className="absolute inset-0 w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           </div>
         </div>
