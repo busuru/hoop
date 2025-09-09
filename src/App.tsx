@@ -3,7 +3,10 @@ import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import Progress from './components/Progress';
 import OfflineStatus from './components/OfflineStatus';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner from './components/LoadingSpinner';
 import offlineService from './services/offlineService';
+import { skills, exercises, stretches } from './data/basketballData';
 
 // Lazy load components to avoid initial load issues
 const Planner = React.lazy(() => import('./components/Planner'));
@@ -20,10 +23,18 @@ function App() {
   useEffect(() => {
     console.log('App component mounted');
     
-    // Initialize offline service and cache app data
+    // Initialize offline service and preload app data for offline use
     const initializeOffline = async () => {
       try {
         console.log('Initializing app...');
+        
+        // Preload essential data for offline use
+        await offlineService.cacheAppData({
+          drills: skills,
+          exercises: exercises,
+          stretches: stretches
+        });
+        
         setLoading(false);
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -38,10 +49,7 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Basketball Trainer...</p>
-        </div>
+        <LoadingSpinner size="lg" message="Loading Basketball Trainer..." />
       </div>
     );
   }
@@ -65,7 +73,6 @@ function App() {
   }
 
   const renderContent = () => {
-    try {
       switch (activeTab) {
         case 'dashboard':
           return <Dashboard />;
@@ -73,63 +80,63 @@ function App() {
           return <Progress />;
         case 'planner':
           return (
-            <React.Suspense fallback={<div className="p-8 text-center">Loading Planner...</div>}>
+            <React.Suspense fallback={<LoadingSpinner message="Loading Planner..." />}>
               <Planner />
             </React.Suspense>
           );
         case 'skills':
           return (
-            <React.Suspense fallback={<div className="p-8 text-center">Loading Skills...</div>}>
+            <React.Suspense fallback={<LoadingSpinner message="Loading Skills..." />}>
               <SkillsLibrary />
             </React.Suspense>
           );
         case 'exercises':
           return (
-            <React.Suspense fallback={<div className="p-8 text-center">Loading Exercises...</div>}>
+            <React.Suspense fallback={<LoadingSpinner message="Loading Exercises..." />}>
               <ExerciseLibrary />
             </React.Suspense>
           );
         case 'stretches':
           return (
-            <React.Suspense fallback={<div className="p-8 text-center">Loading Stretches...</div>}>
+            <React.Suspense fallback={<LoadingSpinner message="Loading Stretches..." />}>
               <StretchingRoutines />
             </React.Suspense>
           );
         case 'videos':
           return (
-            <React.Suspense fallback={<div className="p-8 text-center">Loading Videos...</div>}>
+            <React.Suspense fallback={<LoadingSpinner message="Loading Videos..." />}>
               <VideoLearning />
             </React.Suspense>
           );
         default:
           return <Dashboard />;
       }
-    } catch (error) {
-      console.error('Error rendering content:', error);
-      return (
-        <div className="p-8 text-center">
-          <p className="text-red-600">Error loading content. Please try again.</p>
-          <button 
-            onClick={() => setActiveTab('dashboard')} 
-            className="mt-4 bg-orange-600 text-white px-4 py-2 rounded-lg"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      );
-    }
   };
 
   console.log('Rendering App with activeTab:', activeTab);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main>
-        {renderContent()}
-      </main>
-      <OfflineStatus />
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+        <main>
+          <ErrorBoundary fallback={
+            <div className="p-8 text-center">
+              <p className="text-red-600">Error loading content. Please try again.</p>
+              <button 
+                onClick={() => setActiveTab('dashboard')} 
+                className="mt-4 bg-orange-600 text-white px-4 py-2 rounded-lg"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          }>
+            {renderContent()}
+          </ErrorBoundary>
+        </main>
+        <OfflineStatus />
+      </div>
+    </ErrorBoundary>
   );
 }
 
