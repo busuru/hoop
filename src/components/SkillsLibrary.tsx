@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { Play, Clock, Star, Target, Shield, Users, Footprints, Search, Filter, Youtube, X } from 'lucide-react';
+import React, { useState, lazy, Suspense } from 'react';
+import { Play, Clock, Star, Target, Shield, Users, Footprints, Search, Filter, Youtube, X, ArrowLeft } from 'lucide-react';
 import { skills } from '../data/basketballData';
 import { Skill } from '../types';
 import { searchYouTubeVideos } from '../services/youtubeApi';
 import { YouTubeVideo } from '../types';
+
+// Lazy load the DribbleMoves component
+const DribbleMoves = lazy(() => import('./DribbleMoves'));
 
 const SkillsLibrary: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -14,6 +17,7 @@ const SkillsLibrary: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [showDribbleMoves, setShowDribbleMoves] = useState(false);
 
   const categories = [
     { id: 'all', name: 'All Skills', icon: Target },
@@ -24,6 +28,12 @@ const SkillsLibrary: React.FC = () => {
     { id: 'footwork', name: 'Footwork', icon: Footprints }
   ];
 
+  // Filter out the crossover dribble and only keep dribbling skills
+  const dribblingSkills = skills.filter(skill => 
+    skill.category === 'dribbling' && 
+    !skill.name.toLowerCase().includes('crossover')
+  );
+
   const difficulties = [
     { id: 'all', name: 'All Levels' },
     { id: 'beginner', name: 'Beginner' },
@@ -31,7 +41,13 @@ const SkillsLibrary: React.FC = () => {
     { id: 'advanced', name: 'Advanced' }
   ];
 
-  const filteredSkills = skills.filter(skill => {
+  const getSkillsForCategory = (category: string) => {
+    return category === 'dribbling' ? dribblingSkills : 
+           category === 'all' ? skills : 
+           skills.filter(skill => skill.category === category);
+  };
+
+  const filteredSkills = getSkillsForCategory(selectedCategory).filter(skill => {
     const matchesCategory = selectedCategory === 'all' || skill.category === selectedCategory;
     const matchesDifficulty = selectedDifficulty === 'all' || skill.difficulty === selectedDifficulty;
     const matchesSearch = skill.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -80,6 +96,10 @@ const SkillsLibrary: React.FC = () => {
   };
 
   const handleSkillSelect = (skill: Skill) => {
+    if (skill.id === 'dribbling-moves') {
+      setShowDribbleMoves(true);
+      return;
+    }
     setSelectedSkill(skill);
     setVideos([]);
     setVideoError(null);
@@ -93,6 +113,62 @@ const SkillsLibrary: React.FC = () => {
   const truncateTitle = (title: string, maxLength: number = 60) => {
     return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
   };
+
+  const renderSkillsGrid = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredSkills.map((skill) => (
+        <div
+          key={skill.id}
+          onClick={() => handleSkillSelect(skill)}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+                {getCategoryIcon(skill.category)}
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">{skill.name}</h3>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(skill.difficulty)}`}>
+                  {skill.difficulty}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-600 mb-4">{skill.description}</p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Clock size={16} />
+              <span>{Math.floor((skill.recommendedDuration || 300) / 60)} min</span>
+            </div>
+            <span className="text-orange-600 text-sm font-medium">
+              {skill.id === 'dribbling-moves' ? 'View Moves →' : 'Watch Videos →'}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Show DribbleMoves component when dribbling category is selected
+  if (selectedCategory === 'dribbling') {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button 
+          onClick={() => setSelectedCategory('all')}
+          className="flex items-center text-orange-600 hover:text-orange-700 mb-6"
+        >
+          <ArrowLeft size={18} className="mr-2" />
+          Back to All Skills
+        </button>
+        <Suspense fallback={<div className="text-center py-8">Loading Dribble Moves...</div>}>
+          <DribbleMoves />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -148,41 +224,7 @@ const SkillsLibrary: React.FC = () => {
       </div>
 
       {/* Skills Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSkills.map((skill) => (
-          <div
-            key={skill.id}
-            onClick={() => handleSkillSelect(skill)}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
-                  {getCategoryIcon(skill.category)}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{skill.name}</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(skill.difficulty)}`}>
-                    {skill.difficulty}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <p className="text-sm text-gray-600 mb-4">{skill.description}</p>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Clock size={16} />
-                <span>{Math.floor((skill.recommendedDuration || 300) / 60)} min</span>
-              </div>
-              <span className="text-orange-600 text-sm font-medium">
-                Watch Videos →
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {renderSkillsGrid()}
 
       {/* Skill Detail Modal */}
       {selectedSkill && (

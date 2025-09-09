@@ -11,7 +11,6 @@ const SkillsLibrary = React.lazy(() => import('./components/SkillsLibrary'));
 const ExerciseLibrary = React.lazy(() => import('./components/ExerciseLibrary'));
 const StretchingRoutines = React.lazy(() => import('./components/StretchingRoutines'));
 const VideoLearning = React.lazy(() => import('./components/VideoLearning'));
-const DribbleMoves = React.lazy(() => import('./components/DribbleMoves'));
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -100,12 +99,6 @@ function App() {
           return (
             <React.Suspense fallback={<div className="p-8 text-center">Loading Videos...</div>}>
               <VideoLearning />
-            </React.Suspense>
-          );
-        case 'dribbles':
-          return (
-            <React.Suspense fallback={<div className="p-8 text-center">Loading Dribble Moves...</div>}>
-              <DribbleMoves />
             </React.Suspense>
           );
         default:
