@@ -16,6 +16,8 @@ export interface Skill {
   description: string;
   instructions: string[];
   tips: string[];
+  recommendedDuration?: number;
+  videoId?: string;
 }
 
 export interface Exercise {

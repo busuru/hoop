@@ -17,7 +17,6 @@ const SkillsLibrary: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [showDribbleMoves, setShowDribbleMoves] = useState(false);
 
   const categories = [
     { id: 'all', name: 'All Skills', icon: Target },
@@ -96,10 +95,6 @@ const SkillsLibrary: React.FC = () => {
   };
 
   const handleSkillSelect = (skill: Skill) => {
-    if (skill.id === 'dribbling-moves') {
-      setShowDribbleMoves(true);
-      return;
-    }
     setSelectedSkill(skill);
     setVideos([]);
     setVideoError(null);

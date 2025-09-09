@@ -6,7 +6,7 @@ import OfflineStatus from './components/OfflineStatus';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import offlineService from './services/offlineService';
-import { skills, exercises, stretches } from './data/basketballData';
+import { skills, exercises } from './data/basketballData';
 
 // Lazy load components to avoid initial load issues
 const Planner = React.lazy(() => import('./components/Planner'));
@@ -31,8 +31,7 @@ function App() {
         // Preload essential data for offline use
         await offlineService.cacheAppData({
           drills: skills,
-          exercises: exercises,
-          stretches: stretches
+          exercises: exercises
         });
         
         setLoading(false);
