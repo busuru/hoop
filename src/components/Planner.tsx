@@ -5,19 +5,16 @@ import {
   Clock, 
   Target, 
   CheckCircle, 
-  Edit3, 
-  Trash2, 
-  Play,
-  User,
   Wand2,
-  Download,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import UserProfileModal from './UserProfileModal';
 import PlanPreview from './PlanPreview';
+import ProgressService from '../services/ProgressService';
 import { planGenerator, UserProfile, TrainingPlan } from '../services/planGenerator';
+
 
 interface PlannedSession {
   id: string;
@@ -43,7 +40,7 @@ const Planner: React.FC = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPlanPreview, setShowPlanPreview] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<TrainingPlan | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | undefined>(undefined);
   const [currentWeek, setCurrentWeek] = useState(new Date());
 
   const [newSession, setNewSession] = useState({
@@ -55,6 +52,14 @@ const Planner: React.FC = () => {
     drills: [] as string[],
     notes: ''
   });
+
+  // Inside the component, after the existing useEffect that saves sessions
+useEffect(() => {
+  localStorage.setItem('plannedSessions', JSON.stringify(sessions));
+  
+  // NEW: Update progress data whenever sessions change
+  ProgressService.updateProgress(sessions);
+}, [sessions]);
 
   // Load saved data on component mount
   useEffect(() => {
@@ -159,6 +164,8 @@ const Planner: React.FC = () => {
   };
 
   const handleApplyPlan = (plan: TrainingPlan) => {
+    if (!plan) return;
+    
     // Convert generated sessions to planned sessions
     const newSessions: PlannedSession[] = plan.sessions.map((session, index) => {
       const sessionDate = new Date();
@@ -468,12 +475,12 @@ const Planner: React.FC = () => {
       {/* Plan Preview Modal */}
       {showPlanPreview && generatedPlan && (
         <PlanPreview
-          plan={generatedPlan}
+          plan={generatedPlan !== null ? generatedPlan : {}}
           onClose={() => {
             setShowPlanPreview(false);
             setGeneratedPlan(null);
           }}
-          onApply={handleApplyPlan}
+          onApply={generatedPlan !== null ? handleApplyPlan : () => {}}
           onEdit={() => {
             setShowPlanPreview(false);
             setShowProfileModal(true);

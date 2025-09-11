@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Calendar, TrendingUp, Award, Zap, Target, Dumbbell, Clock, CheckCircle, Bell, User, BookOpen, BarChart3, Lightbulb, Trophy, Star, ChevronRight, Plus, Edit3 } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, Clock, CheckCircle, Bell, BookOpen, BarChart3, Lightbulb, Trophy, ChevronRight, Plus, Edit3 } from 'lucide-react';
 import EditProfileModal from './EditProfileModal';
 import { UserProfile } from '../types';
 
@@ -89,20 +89,10 @@ const Dashboard: React.FC = () => {
     ));
   };
 
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Bronze': return 'from-amber-600 to-amber-400';
-      case 'Silver': return 'from-gray-400 to-gray-200';
-      case 'Gold': return 'from-yellow-500 to-yellow-300';
-      default: return 'from-gray-400 to-gray-200';
-    }
-  };
-
-  const getProgressPercentage = () => (user.xp / maxXp) * 100;
+  const getProgressPercentage = () => ((user.xp ?? 0) / maxXp) * 100;
 
   const handleProfileSave = (updatedProfile: UserProfile) => {
     setUser(updatedProfile);
-    // Save to localStorage for persistence
     localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
   };
 
@@ -116,6 +106,9 @@ const Dashboard: React.FC = () => {
       } catch (error) {
         console.error('Error loading user profile:', error);
       }
+    } else {
+      // Save default to localStorage if none exists
+      localStorage.setItem('userProfile', JSON.stringify(user));
     }
   }, []);
 
@@ -150,11 +143,7 @@ const Dashboard: React.FC = () => {
                     <Edit3 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </button>
-                <img 
-                  src={user.avatarUrl || 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'} 
-                  alt={user.name}
-                  className="w-20 h-20 rounded-full border-4 border-white shadow-xl object-cover"
-                />
+                {/* ✅ REMOVED DUPLICATE AVATAR IMAGE */}
                 <div className="absolute -bottom-2 -right-2 bg-orange-500 text-white rounded-full p-2">
                   <Fire size={16} />
                 </div>
@@ -254,7 +243,7 @@ const Dashboard: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                {todaySchedule.map((task, index) => (
+                {todaySchedule.map((task) => (
                   <div 
                     key={task.id}
                     className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 ${
