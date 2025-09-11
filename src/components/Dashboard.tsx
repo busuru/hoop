@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Calendar, TrendingUp, Award, Zap, Target, Dumbbell, Clock, CheckCircle, Bell, User, BookOpen, BarChart3, Lightbulb, Trophy, Star, ChevronRight, Plus } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, Zap, Target, Dumbbell, Clock, CheckCircle, Bell, User, BookOpen, BarChart3, Lightbulb, Trophy, Star, ChevronRight, Plus, Edit3 } from 'lucide-react';
+import EditProfileModal from './EditProfileModal';
+import { UserProfile } from '../types';
 
 // Simple Fire icon replacement
 const Fire = ({ size = 20, className = "" }) => (
@@ -9,14 +11,20 @@ const Fire = ({ size = 20, className = "" }) => (
 );
 
 const Dashboard: React.FC = () => {
-  const [user, setUser] = useState({
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [user, setUser] = useState<UserProfile>({
+    id: '1',
     name: 'Alex Jordan',
-    avatar: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+    avatarUrl: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
+    email: 'alex.jordan@example.com',
+    bio: 'Passionate basketball player working on improving my game every day.',
+    location: 'Los Angeles, CA',
     streak: 7,
-    level: 'Silver',
-    xp: 1400,
-    maxXp: 2000
+    level: 5,
+    xp: 1400
   });
+
+  const maxXp = 2000;
 
   const [todaySchedule, setTodaySchedule] = useState([
     { id: 1, time: '7:00 AM', title: 'Morning Cardio', category: 'cardio', completed: true, color: 'bg-red-500' },
@@ -90,7 +98,26 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getProgressPercentage = () => (user.xp / user.maxXp) * 100;
+  const getProgressPercentage = () => (user.xp / maxXp) * 100;
+
+  const handleProfileSave = (updatedProfile: UserProfile) => {
+    setUser(updatedProfile);
+    // Save to localStorage for persistence
+    localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+  };
+
+  // Load user profile from localStorage on component mount
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      try {
+        const parsedProfile = JSON.parse(savedProfile);
+        setUser(prev => ({ ...prev, ...parsedProfile }));
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -108,11 +135,25 @@ const Dashboard: React.FC = () => {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             {/* User Info */}
             <div className="flex items-center gap-6">
-              <div className="relative">
+              <div className="relative group">
+                <button
+                  onClick={() => setShowEditProfile(true)}
+                  className="relative block focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full transition-all group-hover:scale-105"
+                  title="Edit Profile"
+                >
+                  <img 
+                    src={user.avatarUrl || 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'} 
+                    alt={user.name}
+                    className="w-20 h-20 rounded-full border-4 border-white shadow-xl object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full flex items-center justify-center transition-all">
+                    <Edit3 className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
                 <img 
-                  src={user.avatar} 
+                  src={user.avatarUrl || 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'} 
                   alt={user.name}
-                  className="w-20 h-20 rounded-full border-4 border-white shadow-xl"
+                  className="w-20 h-20 rounded-full border-4 border-white shadow-xl object-cover"
                 />
                 <div className="absolute -bottom-2 -right-2 bg-orange-500 text-white rounded-full p-2">
                   <Fire size={16} />
@@ -120,7 +161,19 @@ const Dashboard: React.FC = () => {
               </div>
               
               <div className="text-white">
-                <h1 className="text-3xl font-bold mb-2">Welcome back, {user.name}!</h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold">Welcome back, {user.name}!</h1>
+                  <button
+                    onClick={() => setShowEditProfile(true)}
+                    className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    title="Edit Profile"
+                  >
+                    <Edit3 size={20} />
+                  </button>
+                </div>
+                {user.bio && (
+                  <p className="text-white/90 text-sm mb-2 max-w-md">{user.bio}</p>
+                )}
                 <div className="flex items-center gap-4 text-lg">
                   <div className="flex items-center gap-2">
                     <Fire className="text-orange-400" size={20} />
@@ -128,7 +181,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Trophy className="text-yellow-400" size={20} />
-                    <span>{user.level} Level</span>
+                    <span>Level {user.level}</span>
                   </div>
                 </div>
               </div>
@@ -407,6 +460,14 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        onSave={handleProfileSave}
+        initialProfile={user}
+      />
     </div>
   );
 };

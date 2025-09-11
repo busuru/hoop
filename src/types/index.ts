@@ -82,13 +82,13 @@ export interface UserProfile {
   avatarUrl?: string;
   email?: string;
   bio?: string;
-  xp?: number;
-  level?: number;
-  streak?: number;
   location?: string;
   birthday?: string;
   twitter?: string;
   instagram?: string;
   facebook?: string;
-  // Add more fields as needed
+  // Game stats
+  xp?: number;
+  level?: number;
+  streak?: number;
 }

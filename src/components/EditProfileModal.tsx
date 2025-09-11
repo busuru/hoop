@@ -1,6 +1,6 @@
 import React, { useState, ChangeEvent } from 'react';
 import { UserProfile } from '../types';
-import { X, Eye, Trash2 } from 'lucide-react';
+import { X, Eye, Trash2, User, Mail, MapPin, Calendar, FileText } from 'lucide-react';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -34,6 +34,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
   const [avatarPreview, setAvatarPreview] = useState<string>(initialProfile.avatarUrl || '');
   const [error, setError] = useState('');
   const [avatarError, setAvatarError] = useState('');
+
+  // Update state when initialProfile changes
+  React.useEffect(() => {
+    setProfile({ ...initialProfile });
+    setAvatarPreview(initialProfile.avatarUrl || '');
+  }, [initialProfile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -86,7 +92,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
     }
     setError('');
     onSave(profile);
-    onClose();
   };
 
   const completeness = getProfileCompleteness(profile);
@@ -95,13 +100,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg">
+      <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800">Edit Profile</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">Edit Profile</h2>
+            <p className="text-sm text-gray-600">Update your personal information</p>
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-6 h-6" /></button>
         </div>
         <div className="p-6 space-y-6">
-          <div className="flex flex-col items-center gap-2 relative">
+          {/* Avatar Section */}
+          <div className="flex flex-col items-center gap-4 relative">
             {/* Progress ring */}
             <div className="relative w-20 h-20 mb-2">
               <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 80 80">
@@ -117,11 +126,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
                   style={{ transition: 'stroke-dashoffset 0.5s' }}
                 />
               </svg>
-              <div className="w-20 h-20 rounded-full bg-blue-200 flex items-center justify-center text-3xl font-bold text-blue-800 shadow border-2 border-blue-300 overflow-hidden">
+              <div className="w-20 h-20 rounded-full bg-blue-200 flex items-center justify-center text-3xl font-bold text-blue-800 shadow border-2 border-blue-300 overflow-hidden relative">
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt={profile.name} className="w-full h-full object-cover" />
+                  <img src={avatarPreview} alt={profile.name} className="w-full h-full object-cover rounded-full" />
                 ) : (
-                  <span>{profile.name.split(' ').map(n => n[0]).join('').toUpperCase()}</span>
+                  <User className="w-8 h-8 text-blue-600" />
                 )}
                 {avatarPreview && (
                   <button
@@ -142,60 +151,85 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
             <input type="text" value={profile.avatarUrl || ''} onChange={handleAvatarUrlChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="https://..." />
             {avatarError && <div className="text-red-600 text-xs font-medium mt-1">{avatarError}</div>}
           </div>
+
+          {/* Basic Information */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Name *
+            </label>
             <input
               type="text"
               name="name"
               value={profile.name}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Email
+            </label>
             <input
               type="email"
               name="email"
               value={profile.email || ''}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="your.email@example.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Location
+            </label>
             <input
               type="text"
               name="location"
               value={profile.location || ''}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="City, Country"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Birthday</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Birthday
+            </label>
             <input
               type="date"
               name="birthday"
               value={profile.birthday || ''}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Bio
+            </label>
             <textarea
               name="bio"
               value={profile.bio || ''}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              rows={2}
-              maxLength={120}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              maxLength={200}
               placeholder="Tell us a bit about yourself..."
             />
+            <div className="text-xs text-gray-500 mt-1">
+              {(profile.bio || '').length}/200 characters
+            </div>
           </div>
+
+          {/* Social Media */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Social Media</h3>
           <div className="space-y-2">
             {socialFields.map(field => (
               <div key={field.name}>
@@ -205,24 +239,36 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
                   name={field.name}
                   value={(profile as any)[field.name] || ''}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder={field.placeholder}
                 />
               </div>
             ))}
           </div>
+          </div>
+
           {error && <div className="text-red-600 text-sm font-medium">{error}</div>}
-          <div className="flex justify-between gap-2 mt-4">
+        </div>
+        
+        <div className="p-6 border-t border-gray-200">
+          <div className="flex justify-between items-center gap-3">
             <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
-            <button
-              className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium flex items-center gap-2"
-              type="button"
-              title="View profile (coming soon)"
-              disabled
-            >
-              <Eye className="w-4 h-4" /> View Profile
-            </button>
-            <button onClick={handleSave} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">Save</button>
+            <div className="flex gap-2">
+              <button
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                type="button"
+                title="View profile (coming soon)"
+                disabled
+              >
+                <Eye className="w-4 h-4" /> Preview
+              </button>
+              <button 
+                onClick={handleSave} 
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       </div>
