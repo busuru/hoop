@@ -88,7 +88,7 @@ export interface UserProfile {
   instagram?: string;
   facebook?: string;
   // Game stats
-  xp?: number;
-  level?: number;
-  streak?: number;
+  xp: number;
+  level: number;
+  streak: number;
 }
