@@ -74,7 +74,7 @@ function App() {
   const renderContent = () => {
       switch (activeTab) {
         case 'dashboard':
-          return <Dashboard />;
+          return <Dashboard onNavigate={setActiveTab} />;
         case 'progress':
           return <Progress />;
         case 'planner':

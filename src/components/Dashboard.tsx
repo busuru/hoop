@@ -3,6 +3,10 @@ import { Play, Calendar, TrendingUp, Award, Clock, CheckCircle, Bell, BookOpen, 
 import EditProfileModal from './EditProfileModal';
 import { UserProfile } from '../types';
 
+interface DashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
 // Simple Fire icon replacement
 const Fire = ({ size = 20, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -10,7 +14,7 @@ const Fire = ({ size = 20, className = "" }) => (
   </svg>
 );
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [user, setUser] = useState<UserProfile>({
     id: '1',
@@ -82,6 +86,39 @@ const Dashboard: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Navigation handlers for Quick Actions
+  const handleStartWorkout = () => {
+    // Try to find the most recent incomplete session from planner
+    const plannedSessions = JSON.parse(localStorage.getItem('plannedSessions') || '[]');
+    const today = new Date().toISOString().split('T')[0];
+    const todaySession = plannedSessions.find((session: any) => 
+      session.date === today && !session.completed
+    );
+    
+    if (todaySession) {
+      // If there's a session today, go to planner
+      onNavigate?.('planner');
+    } else {
+      // Otherwise, go to skills library to start a workout
+      onNavigate?.('skills');
+    }
+  };
+
+  const handleResumeLastSession = () => {
+    // Find the most recent incomplete session
+    const plannedSessions = JSON.parse(localStorage.getItem('plannedSessions') || '[]');
+    const incompleteSession = plannedSessions
+      .filter((session: any) => !session.completed)
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+    
+    if (incompleteSession) {
+      onNavigate?.('planner');
+    } else {
+      // No incomplete sessions, go to planner to create one
+      onNavigate?.('planner');
+    }
+  };
 
   const toggleTaskComplete = (id: number) => {
     setTodaySchedule(prev => prev.map(task => 
@@ -337,24 +374,55 @@ const Dashboard: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Actions</h2>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <button className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
+                <button 
+                  onClick={handleStartWorkout}
+                  className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg"
+                >
                   <Play size={24} className="mx-auto mb-2" />
                   <span className="text-sm font-semibold">Start Workout</span>
                 </button>
                 
-                <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
-                  <Calendar size={24} className="mx-auto mb-2" />
-                  <span className="text-sm font-semibold">Open Planner</span>
+                <button 
+                  onClick={handleResumeLastSession}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg"
+                >
+                  <Play size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">Resume Last Session</span>
                 </button>
                 
-                <button className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
+                <button 
+                  onClick={() => onNavigate?.('exercises')}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg"
+                >
                   <BookOpen size={24} className="mx-auto mb-2" />
                   <span className="text-sm font-semibold">Exercise Library</span>
                 </button>
                 
-                <button className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg">
-                  <Plus size={24} className="mx-auto mb-2" />
-                  <span className="text-sm font-semibold">Add Session</span>
+                <button 
+                  onClick={() => onNavigate?.('planner')}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg"
+                >
+                  <Calendar size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">Open Planner</span>
+                </button>
+              </div>
+              
+              {/* Additional Quick Actions Row */}
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-4">
+                <button 
+                  onClick={() => onNavigate?.('progress')}
+                  className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg"
+                >
+                  <BarChart3 size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">View Progress</span>
+                </button>
+                
+                <button 
+                  onClick={() => onNavigate?.('skills')}
+                  className="bg-gradient-to-r from-teal-500 to-green-500 text-white p-4 rounded-xl hover:scale-105 transition-transform duration-200 shadow-lg"
+                >
+                  <Target size={24} className="mx-auto mb-2" />
+                  <span className="text-sm font-semibold">Skills Library</span>
                 </button>
               </div>
             </div>
