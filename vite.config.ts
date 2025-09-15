@@ -7,29 +7,19 @@ import { visualizer } from 'rollup-plugin-visualizer';
 const LARGE_DEPS = new Set([
   'react',
   'react-dom',
-  'date-fns',
   'lucide-react',
-  '@radix-ui',
-  'framer-motion',
-  'react-router-dom',
-  'react-query',
-  'zod',
-  'react-hook-form',
-  '@tanstack/react-query'
+  'recharts',
+  'react-beautiful-dnd',
+  'html2canvas',
+  'jspdf'
 ]);
 
-// Common vendor chunks
+// Common vendor chunks - only include dependencies that are actually installed
 const vendorChunks = {
-  'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-  'ui-vendor': [
-    '@radix-ui/react-dialog',
-    '@radix-ui/react-dropdown-menu',
-    '@radix-ui/react-tabs',
-    '@radix-ui/react-slot',
-    '@radix-ui/react-avatar',
-  ],
-  'utils-vendor': ['date-fns', 'zod', 'react-hook-form', 'class-variance-authority', 'clsx', 'tailwind-merge'],
-  'state-vendor': ['@tanstack/react-query', 'react-query'],
+  'react-vendor': ['react', 'react-dom'],
+  'chart-vendor': ['recharts'],
+  'dnd-vendor': ['react-beautiful-dnd'],
+  'pdf-vendor': ['html2canvas', 'jspdf'],
 };
 
 // https://vitejs.dev/config/
@@ -51,7 +41,6 @@ export default defineConfig({
     include: [
       ...Object.values(vendorChunks).flat(),
       'react/jsx-runtime',
-      'scheduler/tracing',
     ],
   },
   
