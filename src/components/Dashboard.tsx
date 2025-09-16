@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Calendar, TrendingUp, Award, Clock, CheckCircle, Bell, BookOpen, BarChart3, Lightbulb, Trophy, ChevronRight, Plus, Edit3 } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, Clock, CheckCircle, Bell, BookOpen, BarChart3, Lightbulb, Trophy, ChevronRight, Edit3, Target } from 'lucide-react';
 import EditProfileModal from './EditProfileModal';
 import { UserProfile } from '../types';
 
