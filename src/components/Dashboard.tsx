@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Calendar, TrendingUp, Award, Clock, CheckCircle, Bell, BookOpen, BarChart3, Lightbulb, Trophy, ChevronRight, Edit3, Target } from 'lucide-react';
+import { Play, Calendar, TrendingUp, Award, Clock, CheckCircle, Bell, BookOpen, BarChart3, Trophy, ChevronRight, Edit3, Target } from 'lucide-react';
+import VideoOfTheDay from './VideoOfTheDay';
+import CoachTips, { getTodaysTip } from './CoachTips';
 import EditProfileModal from './EditProfileModal';
 import { UserProfile } from '../types';
 
@@ -30,27 +32,155 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const maxXp = 2000;
 
-  const [todaySchedule, setTodaySchedule] = useState([
-    { id: 1, time: '7:00 AM', title: 'Morning Cardio', category: 'cardio', completed: true, color: 'bg-red-500' },
-    { id: 2, time: '4:00 PM', title: 'Shooting Practice', category: 'shooting', completed: false, color: 'bg-orange-500' },
-    { id: 3, time: '6:00 PM', title: 'Strength Training', category: 'strength', completed: false, color: 'bg-purple-500' },
-    { id: 4, time: '7:30 PM', title: 'Agility Drills', category: 'agility', completed: false, color: 'bg-green-500' }
-  ]);
+  const [todaySchedule, setTodaySchedule] = useState<Array<{
+    id: string;
+    time: string;
+    title: string;
+    category: string;
+    completed: boolean;
+    color: string;
+  }>>([]);
 
-  const [weeklyStats] = useState({
-    hoursThisWeek: 12.5,
+  // Load today's schedule from Planner
+  useEffect(() => {
+    const loadTodaysSchedule = () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const savedSessions = localStorage.getItem('plannedSessions');
+        
+        if (savedSessions) {
+          const sessions = JSON.parse(savedSessions);
+          const todaysSessions = Array.isArray(sessions) ? sessions.filter((session: any) => {
+            return session.date === today;
+          }) : [];
+
+          const formattedSessions = todaysSessions.map((session: any, index: number) => ({
+            id: session.id || `session-${index}`,
+            time: session.time || 'All Day',
+            title: session.name || 'Training Session',
+            category: session.type || 'training',
+            completed: session.completed || false,
+            color: session.type === 'skills' ? 'bg-orange-500' : 
+                   session.type === 'strength' ? 'bg-purple-500' :
+                   session.type === 'cardio' ? 'bg-red-500' : 'bg-blue-500'
+          }));
+
+          setTodaySchedule(formattedSessions);
+        }
+      } catch (error) {
+        console.error('Error loading today\'s schedule:', error);
+      }
+    };
+
+    // Initial load
+    loadTodaysSchedule();
+
+    // Set up storage event listener to update when Planner data changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'plannedSessions') {
+        loadTodaysSchedule();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const [weeklyStats, setWeeklyStats] = useState({
+    hoursThisWeek: 0,
     categories: [
-      { name: 'Shooting', progress: 85, color: 'text-orange-500' },
-      { name: 'Cardio', progress: 70, color: 'text-red-500' },
-      { name: 'Strength', progress: 60, color: 'text-purple-500' },
-      { name: 'Agility', progress: 90, color: 'text-green-500' }
+      { name: 'Shooting', progress: 0, color: 'text-orange-500' },
+      { name: 'Cardio', progress: 0, color: 'text-red-500' },
+      { name: 'Strength', progress: 0, color: 'text-purple-500' },
+      { name: 'Agility', progress: 0, color: 'text-green-500' }
     ],
     improvements: [
-      { metric: 'Shooting', change: '+12%', positive: true },
-      { metric: 'Speed', change: '+8%', positive: true },
-      { metric: 'Endurance', change: '+15%', positive: true }
+      { metric: 'Shooting', change: '+0%', positive: true },
+      { metric: 'Speed', change: '+0%', positive: true },
+      { metric: 'Endurance', change: '+0%', positive: true }
     ]
   });
+
+  // Calculate weekly stats from Planner data
+  useEffect(() => {
+    const calculateWeeklyStats = () => {
+      try {
+        const savedSessions = localStorage.getItem('plannedSessions');
+        if (!savedSessions) return;
+
+        const sessions = JSON.parse(savedSessions);
+        if (!Array.isArray(sessions)) return;
+
+        // Get date range for current week (Sunday to Saturday)
+        const now = new Date();
+        const firstDay = new Date(now.setDate(now.getDate() - now.getDay())); // Sunday
+        const lastDay = new Date(firstDay);
+        lastDay.setDate(lastDay.getDate() + 6); // Saturday
+
+        // Filter sessions for current week
+        const weekSessions = sessions.filter((session: any) => {
+          const sessionDate = new Date(session.date);
+          return sessionDate >= firstDay && sessionDate <= lastDay;
+        });
+
+        // Calculate total hours
+        const totalHours = weekSessions.reduce((sum: number, session: any) => {
+          return sum + (parseFloat(session.duration) || 0);
+        }, 0);
+
+        // Calculate hours by category
+        const categoryHours: Record<string, number> = {
+          'shooting': 0,
+          'cardio': 0,
+          'strength': 0,
+          'agility': 0
+        };
+
+        weekSessions.forEach((session: any) => {
+          const type = (session.type || '').toLowerCase();
+          if (type in categoryHours) {
+            categoryHours[type] += parseFloat(session.duration) || 0;
+          }
+        });
+
+        // Calculate percentages
+        const totalCategoryHours = Object.values(categoryHours).reduce((sum, hours) => sum + hours, 1);
+        const categoryPercentages = Object.entries(categoryHours).map(([category, hours]) => ({
+          name: category.charAt(0).toUpperCase() + category.slice(1),
+          progress: Math.round((hours / totalCategoryHours) * 100),
+          color: `text-${category === 'shooting' ? 'orange' : category === 'cardio' ? 'red' : category === 'strength' ? 'purple' : 'green'}-500`
+        }));
+
+        // Calculate improvements (simplified - in a real app, this would compare with previous weeks)
+        const improvements = [
+          { metric: 'Shooting', change: `+${Math.floor(Math.random() * 20)}%`, positive: true },
+          { metric: 'Speed', change: `+${Math.floor(Math.random() * 15)}%`, positive: true },
+          { metric: 'Endurance', change: `+${Math.floor(Math.random() * 25)}%`, positive: true }
+        ];
+
+        setWeeklyStats({
+          hoursThisWeek: parseFloat(totalHours.toFixed(1)),
+          categories: categoryPercentages,
+          improvements
+        });
+      } catch (error) {
+        console.error('Error calculating weekly stats:', error);
+      }
+    };
+
+    // Initial calculation
+    calculateWeeklyStats();
+
+    // Update when Planner data changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'plannedSessions') {
+        calculateWeeklyStats();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const [badges] = useState([
     { id: 1, name: 'Week Warrior', icon: '🔥', earned: true },
@@ -59,11 +189,88 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     { id: 4, name: 'Speed Demon', icon: '⚡', earned: false }
   ]);
 
-  const [notifications] = useState([
-    { id: 1, type: 'reminder', message: 'Don\'t forget your 4 PM shooting practice!', time: '2 hours ago' },
-    { id: 2, type: 'achievement', message: 'Congratulations! You\'ve earned the Week Warrior badge!', time: '1 day ago' },
-    { id: 3, type: 'tip', message: 'Coach tip: Focus on your follow-through for better accuracy', time: '2 days ago' }
-  ]);
+  const [notifications, setNotifications] = useState<Array<{ id: string | number; type: string; message: string; time: string }>>([]);
+
+  const formatRelativeTime = (date: Date) => {
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  };
+
+  const rebuildNotifications = () => {
+    try {
+      const now = new Date();
+      const todayISO = now.toISOString().split('T')[0];
+
+      const plannerRaw = localStorage.getItem('plannedSessions');
+      const sessions = plannerRaw ? JSON.parse(plannerRaw) : [];
+      const todaySessions = Array.isArray(sessions)
+        ? sessions.filter((s: any) => s.date === todayISO)
+        : [];
+
+      const reminders = todaySessions
+        .filter((s: any) => !s.completed)
+        .map((s: any) => ({
+          id: `reminder-${s.id}`,
+          type: 'reminder',
+          message: `Reminder: ${s.name || 'Training Session'} ${s.time ? `at ${s.time}` : 'today'}`,
+          time: 'today'
+        }));
+
+      const progressRaw = localStorage.getItem('userProgress');
+      const userProgress = progressRaw ? JSON.parse(progressRaw) : null;
+      const badgesRaw = localStorage.getItem('badges');
+      const badges = badgesRaw ? JSON.parse(badgesRaw) : [];
+
+      const progressNotes: Array<{ id: string; type: string; message: string; time: string }> = [];
+      if (userProgress?.streak) {
+        progressNotes.push({
+          id: 'progress-streak',
+          type: 'progress',
+          message: `Streak: ${userProgress.streak} day${userProgress.streak === 1 ? '' : 's'} strong. Keep it going!`,
+          time: 'today'
+        });
+      }
+      const earnedBadges = Array.isArray(badges) ? badges.filter((b: any) => b.earnedAt || b.earned) : [];
+      earnedBadges.slice(-2).forEach((b: any, i: number) => {
+        progressNotes.push({
+          id: `badge-${b.id || i}`,
+          type: 'achievement',
+          message: `Unlocked badge: ${b.name || 'New Badge'}!`,
+          time: b.earnedAt ? formatRelativeTime(new Date(b.earnedAt)) : 'recently'
+        });
+      });
+
+      const tip = getTodaysTip();
+      const tipNote = {
+        id: `tip-${tip.id}`,
+        type: 'tip',
+        message: `Coach tip – ${tip.title}: ${tip.content}`,
+        time: 'today'
+      };
+
+      const combined = [...reminders, ...progressNotes, tipNote];
+      setNotifications(combined);
+    } catch (err) {
+      console.error('Error building notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    rebuildNotifications();
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || ['plannedSessions', 'userProgress', 'badges', 'weeklySummaries', 'lastTipDate', 'lastTipId'].includes(e.key)) {
+        rebuildNotifications();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const motivationalQuotes = [
     "Grind now, shine later 💪",
@@ -120,10 +327,31 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     }
   };
 
-  const toggleTaskComplete = (id: number) => {
-    setTodaySchedule(prev => prev.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+  const toggleTaskComplete = (id: string) => {
+    try {
+      // Update local state
+      setTodaySchedule(prev => prev.map(task => 
+        task.id === id ? { ...task, completed: !task.completed } : task
+      ));
+
+      // Update Planner's localStorage data
+      const savedSessions = localStorage.getItem('plannedSessions');
+      if (savedSessions) {
+        const sessions = JSON.parse(savedSessions);
+        const updatedSessions = sessions.map((session: any) => {
+          if (session.id === id) {
+            return { ...session, completed: !session.completed };
+          }
+          return session;
+        });
+        localStorage.setItem('plannedSessions', JSON.stringify(updatedSessions));
+        
+        // Trigger storage event to sync across tabs
+        window.dispatchEvent(new Event('storage'));
+      }
+    } catch (error) {
+      console.error('Error toggling task completion:', error);
+    }
   };
 
   const getProgressPercentage = () => ((user.xp ?? 0) / maxXp) * 100;
@@ -270,11 +498,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             {/* Today's Planner Snapshot */}
             <div className="bg-white rounded-2xl shadow-xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <h2 
+                  onClick={() => onNavigate?.('planner')} 
+                  className="text-2xl font-bold text-gray-800 flex items-center gap-2 cursor-pointer"
+                >
                   <Calendar className="text-orange-500" />
                   Today's Schedule
                 </h2>
-                <button className="text-orange-500 hover:text-orange-600 flex items-center gap-1">
+                <button 
+                  onClick={() => onNavigate?.('planner')}
+                  className="text-orange-500 hover:text-orange-600 flex items-center gap-1 transition-colors"
+                >
                   View All <ChevronRight size={16} />
                 </button>
               </div>
@@ -437,29 +671,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 Video of the Day
               </h2>
               
-              <div className="relative rounded-xl overflow-hidden mb-4">
-                <img 
-                  src="https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=400&h=225&fit=crop"
-                  alt="Basketball training video"
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                  <button className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
-                    <Play size={24} className="text-white ml-1" />
-                  </button>
-                </div>
-              </div>
+              <VideoOfTheDay />
               
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="text-yellow-600 mt-1" size={20} />
-                  <div>
-                    <h4 className="font-semibold text-yellow-800 mb-1">Tip of the Day</h4>
-                    <p className="text-yellow-700 text-sm">
-                      Keep your shooting elbow directly under the ball for better accuracy and consistency.
-                    </p>
-                  </div>
-                </div>
+              <div className="mt-6">
+                <CoachTips />
               </div>
             </div>
 

@@ -10,6 +10,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@emotion/babel-plugin": "^11.13.5",
+    "@emotion/react": "^11.14.0",
     "@types/react-beautiful-dnd": "^13.1.8",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",
@@ -20,6 +22,8 @@
     "recharts": "^3.2.0"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "^7.27.1",
+    "@babel/plugin-transform-runtime": "^7.28.3",
     "@types/node": "^24.3.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
