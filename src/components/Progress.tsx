@@ -4,8 +4,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend
 } from 'recharts';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import {
   Calendar,
   Award,
@@ -111,6 +109,11 @@ const Progress: React.FC = () => {
     if (!progressRef.current) return;
     setExporting(true);
     try {
+      const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ]);
+
       const canvas = await html2canvas(progressRef.current, {
         scale: 2,
         useCORS: true,
@@ -123,7 +126,7 @@ const Progress: React.FC = () => {
         link.href = canvas.toDataURL('image/png');
         link.click();
       } else {
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdf = new JsPDF('p', 'mm', 'a4');
         const imgData = canvas.toDataURL('image/png');
         const imgWidth = 210; // A4 width in mm
         const pageHeight = 295; // A4 height in mm

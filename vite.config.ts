@@ -52,7 +52,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['lucide-react'],
+          'ui-vendor': ['lucide-react', '@emotion/react'],
           'chart-vendor': ['recharts']
         }
       }
@@ -64,8 +64,7 @@ export default defineConfig({
       'react',
       'react-dom',
       'react/jsx-runtime',
-      '@emotion/react',
-      '@emotion/styled'
+      '@emotion/react'
     ],
     esbuildOptions: {
       loader: {

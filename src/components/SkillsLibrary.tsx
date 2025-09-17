@@ -1,5 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
-import { Play, Clock, Star, Target, Shield, Users, Footprints, Search, Filter, Youtube, X, ArrowLeft } from 'lucide-react';
+import { Play, Clock, Star, Target, Shield, Users, Footprints as FootprintsIcon, Search, Filter, Youtube, X, ArrowLeft } from 'lucide-react';
 import { skills } from '../data/basketballData';
 import { Skill } from '../types';
 import { searchYouTubeVideos } from '../services/youtubeApi';
@@ -7,6 +7,7 @@ import { YouTubeVideo } from '../types';
 
 // Lazy load the DribbleMoves component
 const DribbleMoves = lazy(() => import('./DribbleMoves'));
+const ShootingDrills = lazy(() => import('./ShootingDrills'));
 
 const SkillsLibrary: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -24,7 +25,7 @@ const SkillsLibrary: React.FC = () => {
     { id: 'dribbling', name: 'Dribbling', icon: Play },
     { id: 'defense', name: 'Defense', icon: Shield },
     { id: 'passing', name: 'Passing', icon: Users },
-    { id: 'footwork', name: 'Footwork', icon: Footprints }
+    { id: 'footwork', name: 'Footwork', icon: FootprintsIcon }
   ];
 
   // Filter out the crossover dribble and only keep dribbling skills
@@ -146,6 +147,24 @@ const SkillsLibrary: React.FC = () => {
       ))}
     </div>
   );
+
+  // Show ShootingDrills component when shooting category is selected
+  if (selectedCategory === 'shooting') {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button 
+          onClick={() => setSelectedCategory('all')}
+          className="flex items-center text-orange-600 hover:text-orange-700 mb-6"
+        >
+          <ArrowLeft size={18} className="mr-2" />
+          Back to All Skills
+        </button>
+        <Suspense fallback={<div className="text-center py-8">Loading Shooting Drills...</div>}>
+          <ShootingDrills />
+        </Suspense>
+      </div>
+    );
+  }
 
   // Show DribbleMoves component when dribbling category is selected
   if (selectedCategory === 'dribbling') {

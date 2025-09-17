@@ -188,24 +188,43 @@ class OfflineService {
       return 0;
     }
 
+    // Safety guards to avoid heavy operations or AbortError on massive caches
+    const MAX_ITEMS_TO_SCAN = 500; // cap to avoid scanning everything
+    const MAX_SIZE_TO_REPORT = 50 * 1024 * 1024; // 50 MB cap for quick UI estimates
+
     try {
       const cacheNames = await caches.keys();
       let totalSize = 0;
+      let scanned = 0;
 
       for (const cacheName of cacheNames) {
+        if (scanned >= MAX_ITEMS_TO_SCAN || totalSize >= MAX_SIZE_TO_REPORT) break;
         const cache = await caches.open(cacheName);
+        // Using keys with an options object is unsupported; fetch in small batches
         const keys = await cache.keys();
-        
+
         for (const request of keys) {
+          if (scanned >= MAX_ITEMS_TO_SCAN || totalSize >= MAX_SIZE_TO_REPORT) break;
+          scanned++;
           const response = await cache.match(request);
-          if (response) {
-            const blob = await response.blob();
-            totalSize += blob.size;
+          if (!response) continue;
+          // Prefer Content-Length header if available to avoid reading blobs
+          const contentLength = response.headers.get('content-length');
+          if (contentLength) {
+            const size = parseInt(contentLength, 10);
+            if (!Number.isNaN(size)) {
+              totalSize += size;
+              continue;
+            }
           }
+          // Fallback to blob size as last resort
+          const blob = await response.blob();
+          totalSize += blob.size;
         }
       }
 
-      return totalSize;
+      // If we hit caps, this is an estimate
+      return Math.min(totalSize, MAX_SIZE_TO_REPORT);
     } catch (error) {
       console.error('Error calculating cache size:', error);
       return 0;

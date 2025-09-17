@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
-import Dashboard from './components/Dashboard';
-import Progress from './components/Progress';
 import OfflineStatus from './components/OfflineStatus';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -14,6 +12,8 @@ const SkillsLibrary = React.lazy(() => import('./components/SkillsLibrary'));
 const ExerciseLibrary = React.lazy(() => import('./components/ExerciseLibrary'));
 const StretchingRoutines = React.lazy(() => import('./components/StretchingRoutines'));
 const VideoLearning = React.lazy(() => import('./components/VideoLearning'));
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const Progress = React.lazy(() => import('./components/Progress'));
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -74,9 +74,17 @@ function App() {
   const renderContent = () => {
       switch (activeTab) {
         case 'dashboard':
-          return <Dashboard onNavigate={setActiveTab} />;
+          return (
+            <React.Suspense fallback={<LoadingSpinner message="Loading Dashboard..." />}>
+              <Dashboard onNavigate={setActiveTab} />
+            </React.Suspense>
+          );
         case 'progress':
-          return <Progress />;
+          return (
+            <React.Suspense fallback={<LoadingSpinner message="Loading Progress..." />}>
+              <Progress />
+            </React.Suspense>
+          );
         case 'planner':
           return (
             <React.Suspense fallback={<LoadingSpinner message="Loading Planner..." />}>
