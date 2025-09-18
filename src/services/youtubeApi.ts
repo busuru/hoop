@@ -2,6 +2,7 @@ const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 
 export interface YouTubeSearchResponse {
+  nextPageToken?: string;
   items: Array<{
     id: {
       videoId: string;
@@ -20,13 +21,16 @@ export interface YouTubeSearchResponse {
   }>;
 }
 
-export const searchYouTubeVideos = async (query: string): Promise<YouTubeSearchResponse> => {
+export const searchYouTubeVideos = async (
+  query: string,
+  pageToken?: string
+): Promise<YouTubeSearchResponse> => {
   if (!YOUTUBE_API_KEY) {
     throw new Error('YouTube API key is not configured. Please add VITE_YOUTUBE_API_KEY to your environment variables.');
   }
 
   const searchQuery = `${query} basketball tutorial`;
-  const url = `${YOUTUBE_API_BASE_URL}/search?part=snippet&type=video&q=${encodeURIComponent(searchQuery)}&maxResults=5&key=${YOUTUBE_API_KEY}`;
+  const url = `${YOUTUBE_API_BASE_URL}/search?part=snippet&type=video&q=${encodeURIComponent(searchQuery)}&maxResults=5${pageToken ? `&pageToken=${pageToken}` : ''}&key=${YOUTUBE_API_KEY}`;
 
   try {
     const response = await fetch(url);

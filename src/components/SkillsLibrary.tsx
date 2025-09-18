@@ -18,6 +18,10 @@ const SkillsLibrary: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [videoNextPageToken, setVideoNextPageToken] = useState<string | undefined>(undefined);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
 
   const categories = [
     { id: 'all', name: 'All Skills', icon: Target },
@@ -74,6 +78,7 @@ const SkillsLibrary: React.FC = () => {
   const loadSkillVideos = async (skill: Skill) => {
     setLoadingVideos(true);
     setVideoError(null);
+    setVideoNextPageToken(undefined);
     
     try {
       const searchQuery = `how to ${skill.name} basketball tutorial`;
@@ -88,8 +93,32 @@ const SkillsLibrary: React.FC = () => {
       }));
       
       setVideos(videoData);
+      setVideoNextPageToken(response.nextPageToken);
     } catch (err) {
       setVideoError(err instanceof Error ? err.message : 'Failed to load videos');
+    } finally {
+      setLoadingVideos(false);
+    }
+  };
+
+  const loadMoreSkillVideos = async () => {
+    if (!selectedSkill || !videoNextPageToken) return;
+    setLoadingVideos(true);
+    try {
+      const searchQuery = `how to ${selectedSkill.name} basketball tutorial`;
+      const response = await searchYouTubeVideos(searchQuery, videoNextPageToken);
+      const more: YouTubeVideo[] = response.items.map(item => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.medium.url,
+        channelTitle: item.snippet.channelTitle,
+        publishedAt: item.snippet.publishedAt,
+        description: item.snippet.description
+      }));
+      setVideos(prev => [...prev, ...more]);
+      setVideoNextPageToken(response.nextPageToken);
+    } catch (err) {
+      setVideoError(err instanceof Error ? err.message : 'Failed to load more videos');
     } finally {
       setLoadingVideos(false);
     }
@@ -99,7 +128,10 @@ const SkillsLibrary: React.FC = () => {
     setSelectedSkill(skill);
     setVideos([]);
     setVideoError(null);
+    setVideoNextPageToken(undefined);
     loadSkillVideos(skill);
+    setTimeRemaining((skill.recommendedDuration || 300));
+    setTimerActive(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -109,6 +141,53 @@ const SkillsLibrary: React.FC = () => {
   const truncateTitle = (title: string, maxLength: number = 60) => {
     return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
   };
+
+  const startTimer = (duration: number) => {
+    setTimeRemaining(duration);
+    setTimerActive(true);
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          setTimerActive(false);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    setTimerInterval(interval);
+  };
+
+  const pauseTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+    setTimerActive(false);
+  };
+
+  const resetTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+    setTimerActive(false);
+    setTimeRemaining(selectedSkill?.recommendedDuration || 0);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+    };
+  }, [timerInterval]);
 
   const renderSkillsGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,7 +322,7 @@ const SkillsLibrary: React.FC = () => {
       {/* Skill Detail Modal */}
       {selectedSkill && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -274,12 +353,42 @@ const SkillsLibrary: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6">
+            <div className="p-6 flex-1 overflow-y-auto">
               {selectedSkill.description && (
                 <div className="mb-6">
                   <p className="text-gray-700">{selectedSkill.description}</p>
                 </div>
               )}
+
+              {(selectedSkill.instructions && selectedSkill.instructions.length > 0) || (selectedSkill.tips && selectedSkill.tips.length > 0) ? (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {selectedSkill.instructions && selectedSkill.instructions.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">Step-by-step Instructions</h4>
+                      <ol className="list-decimal pl-5 space-y-2 text-gray-700">
+                        {selectedSkill.instructions.map((step, index) => (
+                          <li key={index}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                  {selectedSkill.tips && selectedSkill.tips.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">Tips</h4>
+                      <ul className="space-y-2 text-gray-700">
+                        {selectedSkill.tips.map((tip, index) => (
+                          <li key={index} className="flex items-start space-x-3">
+                            <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                            <span>{tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              
               
               {/* Loading State */}
               {loadingVideos && (
@@ -343,23 +452,20 @@ const SkillsLibrary: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  {videoNextPageToken && (
+                    <div className="text-center mt-4">
+                      <button
+                        onClick={loadMoreSkillVideos}
+                        className="bg-orange-600 text-white px-5 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+                      >
+                        Load more
+                      </button>
+                </div>
+              )}
                 </div>
               )}
               
-              {/* Tips Section */}
-              {selectedSkill.tips && selectedSkill.tips.length > 0 && (
-                <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">Tips</h4>
-                <ul className="space-y-2">
-                  {selectedSkill.tips.map((tip, index) => (
-                    <li key={index} className="flex items-start space-x-3">
-                      <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700">{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-                </div>
-              )}
+              
               
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -378,6 +484,35 @@ const SkillsLibrary: React.FC = () => {
                   Close
                 </button>
               </div>
+
+            <div className="border-t border-gray-200 p-6 text-center">
+              <div className="text-4xl font-bold text-gray-900 mb-4">
+                {formatTime(timeRemaining || selectedSkill?.recommendedDuration || 0)}
+              </div>
+              <div className="flex items-center justify-center space-x-3">
+                {!timerActive ? (
+                  <button
+                    onClick={() => startTimer(timeRemaining || selectedSkill?.recommendedDuration || 0)}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Start
+                  </button>
+                ) : (
+                  <button
+                    onClick={pauseTimer}
+                    className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+                  >
+                    Pause
+                  </button>
+                )}
+                <button
+                  onClick={resetTimer}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
             </div>
           </div>
         </div>

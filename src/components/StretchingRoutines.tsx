@@ -221,7 +221,7 @@ const StretchingRoutines: React.FC = () => {
       {/* Stretch Detail Modal */}
       {selectedStretch && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -254,51 +254,43 @@ const StretchingRoutines: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6">
+            <div className="p-6 flex-1 overflow-y-auto">
               {selectedStretch.description && (
                 <div className="mb-6">
                   <p className="text-gray-700">{selectedStretch.description}</p>
                 </div>
               )}
-              
-              {/* Timer */}
-              <div className="bg-gray-50 rounded-xl p-6 mb-6 text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-4">
-                  {formatTime(timeRemaining || selectedStretch.duration)}
-                </div>
-                <div className="flex items-center justify-center space-x-3">
-                  {!timerActive ? (
-                    <button
-                      onClick={() => startTimer(timeRemaining || selectedStretch.duration)}
-                      className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Play size={16} />
-                      <span>Start</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={pauseTimer}
-                      className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Pause size={16} />
-                      <span>Pause</span>
-                    </button>
+
+              {(selectedStretch.instructions && selectedStretch.instructions.length > 0) || (selectedStretch.tips && selectedStretch.tips.length > 0) ? (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {selectedStretch.instructions && selectedStretch.instructions.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">Step-by-step Instructions</h4>
+                      <ol className="list-decimal pl-5 space-y-2 text-gray-700">
+                        {selectedStretch.instructions.map((step, index) => (
+                          <li key={index}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
                   )}
-                  <button
-                    onClick={resetTimer}
-                    className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                  >
-                    <RotateCcw size={16} />
-                    <span>Reset</span>
-                  </button>
+                  {selectedStretch.tips && selectedStretch.tips.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">Tips</h4>
+                      <ul className="space-y-2 text-gray-700">
+                        {selectedStretch.tips.map((tip, index) => (
+                          <li key={index} className="flex items-start space-x-3">
+                            <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                            <span>{tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                {timeRemaining === 0 && selectedStretch && (
-                  <div className="mt-4 flex items-center justify-center space-x-2 text-green-600">
-                    <CheckCircle size={20} />
-                    <span className="font-medium">Stretch completed!</span>
-                  </div>
-                )}
-              </div>
+              ) : null}
+              
+              {/* Timer will be in persistent footer */}
+              
               
               {/* Loading State */}
               {loadingVideos && (
@@ -376,19 +368,7 @@ const StretchingRoutines: React.FC = () => {
                 </div>
               </div>
               
-              {selectedStretch.tips && selectedStretch.tips.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">Tips</h4>
-                  <ul className="space-y-2">
-                    {selectedStretch.tips.map((tip, index) => (
-                      <li key={index} className="flex items-start space-x-3">
-                        <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700">{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              
               
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -408,7 +388,46 @@ const StretchingRoutines: React.FC = () => {
                 >
                   Close
                 </button>
+            </div>
+
+            {/* Timer persistent footer */}
+            <div className="border-t border-gray-200 p-6 text-center">
+              <div className="text-4xl font-bold text-gray-900 mb-4">
+                {formatTime(timeRemaining || selectedStretch.duration)}
               </div>
+              <div className="flex items-center justify-center space-x-3">
+                {!timerActive ? (
+                  <button
+                    onClick={() => startTimer(timeRemaining || selectedStretch.duration)}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Play size={16} />
+                    <span>Start</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={pauseTimer}
+                    className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Pause size={16} />
+                    <span>Pause</span>
+                  </button>
+                )}
+                <button
+                  onClick={resetTimer}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                >
+                  <RotateCcw size={16} />
+                  <span>Reset</span>
+                </button>
+              </div>
+              {timeRemaining === 0 && selectedStretch && (
+                <div className="mt-4 flex items-center justify-center space-x-2 text-green-600">
+                  <CheckCircle size={20} />
+                  <span className="font-medium">Stretch completed!</span>
+                </div>
+              )}
+            </div>
             </div>
           </div>
         </div>

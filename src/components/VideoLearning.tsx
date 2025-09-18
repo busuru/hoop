@@ -12,6 +12,7 @@ const VideoLearning: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
 
   // Load favorites from localStorage on component mount
   useEffect(() => {
@@ -63,6 +64,7 @@ const VideoLearning: React.FC = () => {
     setLoading(true);
     setError(null);
     setActiveCategory(categoryId || null);
+    setNextPageToken(undefined);
     
     try {
       const response = await searchYouTubeVideos(query);
@@ -76,6 +78,7 @@ const VideoLearning: React.FC = () => {
       }));
       
       setVideos(videoData);
+      setNextPageToken(response.nextPageToken);
       setShowFavorites(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search videos');
@@ -84,13 +87,37 @@ const VideoLearning: React.FC = () => {
     }
   };
 
+  const handleLoadMore = async () => {
+    if (!nextPageToken) return;
+    setLoading(true);
+    try {
+      const response = await searchYouTubeVideos(activeCategory ? categoryButtons.find(c => c.id === activeCategory)?.searchTerm || searchQuery : searchQuery, nextPageToken);
+      const more: YouTubeVideo[] = response.items.map(item => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.medium.url,
+        channelTitle: item.snippet.channelTitle,
+        publishedAt: item.snippet.publishedAt,
+        description: item.snippet.description
+      }));
+      setVideos(prev => [...prev, ...more]);
+      setNextPageToken(response.nextPageToken);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load more videos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFormSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setActiveCategory(null);
+    setNextPageToken(undefined);
     await handleSearch(searchQuery);
   };
 
   const handleCategoryClick = async (category: typeof categoryButtons[0]) => {
+    setNextPageToken(undefined);
     await handleSearch(category.searchTerm, category.id);
   };
 
@@ -336,6 +363,18 @@ const VideoLearning: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Load More */}
+      {!loading && !showFavorites && nextPageToken && (
+        <div className="text-center">
+          <button
+            onClick={handleLoadMore}
+            className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors"
+          >
+            Load more
+          </button>
         </div>
       )}
 

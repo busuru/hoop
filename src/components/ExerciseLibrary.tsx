@@ -14,6 +14,9 @@ const ExerciseLibrary: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
 
   const categories = [
     { id: 'all', name: 'All Exercises', icon: Dumbbell },
@@ -93,6 +96,8 @@ const ExerciseLibrary: React.FC = () => {
     setVideos([]);
     setVideoError(null);
     loadExerciseVideos(exercise);
+    setTimeRemaining(exercise.recommendedDuration || exercise.duration || 0);
+    setTimerActive(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -102,6 +107,53 @@ const ExerciseLibrary: React.FC = () => {
   const truncateTitle = (title: string, maxLength: number = 60) => {
     return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
   };
+
+  const startTimer = (duration: number) => {
+    setTimeRemaining(duration);
+    setTimerActive(true);
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          setTimerActive(false);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    setTimerInterval(interval);
+  };
+
+  const pauseTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+    setTimerActive(false);
+  };
+
+  const resetTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+    setTimerActive(false);
+    setTimeRemaining((selectedExercise?.recommendedDuration || selectedExercise?.duration || 0));
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+    };
+  }, [timerInterval]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -203,7 +255,7 @@ const ExerciseLibrary: React.FC = () => {
       {/* Exercise Detail Modal */}
       {selectedExercise && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -234,12 +286,42 @@ const ExerciseLibrary: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6">
+            <div className="p-6 flex-1 overflow-y-auto">
               {selectedExercise.description && (
                 <div className="mb-6">
                   <p className="text-gray-700">{selectedExercise.description}</p>
                 </div>
               )}
+
+              {(selectedExercise.instructions && selectedExercise.instructions.length > 0) || (selectedExercise.tips && selectedExercise.tips.length > 0) ? (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {selectedExercise.instructions && selectedExercise.instructions.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">Step-by-step Instructions</h4>
+                      <ol className="list-decimal pl-5 space-y-2 text-gray-700">
+                        {selectedExercise.instructions.map((step, index) => (
+                          <li key={index}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                  {selectedExercise.tips && selectedExercise.tips.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">Tips</h4>
+                      <ul className="space-y-2 text-gray-700">
+                        {selectedExercise.tips.map((tip, index) => (
+                          <li key={index} className="flex items-start space-x-3">
+                            <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                            <span>{tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              
               
               {/* Loading State */}
               {loadingVideos && (
@@ -306,19 +388,7 @@ const ExerciseLibrary: React.FC = () => {
                 </div>
               )}
               
-              {selectedExercise.tips && selectedExercise.tips.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">Tips</h4>
-                  <ul className="space-y-2">
-                    {selectedExercise.tips.map((tip, index) => (
-                      <li key={index} className="flex items-start space-x-3">
-                        <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700">{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              
               
               {selectedExercise.equipment && selectedExercise.equipment.length > 0 && (
                 <div className="mb-6">
@@ -354,7 +424,37 @@ const ExerciseLibrary: React.FC = () => {
                 >
                   Close
                 </button>
+            </div>
+
+            {/* Timer persistent footer */}
+            <div className="border-t border-gray-200 p-6 text-center">
+              <div className="text-4xl font-bold text-gray-900 mb-4">
+                {formatTime(timeRemaining || selectedExercise?.recommendedDuration || selectedExercise?.duration || 0)}
               </div>
+              <div className="flex items-center justify-center space-x-3">
+                {!timerActive ? (
+                  <button
+                    onClick={() => startTimer(timeRemaining || selectedExercise?.recommendedDuration || selectedExercise?.duration || 0)}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Start
+                  </button>
+                ) : (
+                  <button
+                    onClick={pauseTimer}
+                    className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+                  >
+                    Pause
+                  </button>
+                )}
+                <button
+                  onClick={resetTimer}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
             </div>
           </div>
         </div>
