@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Heart, X, Youtube, Clock, User, ArrowLeft } from 'lucide-react';
+import { Play, ArrowLeft, Youtube, ExternalLink } from 'lucide-react';
+import { YouTubeVideo } from '../types';
 import { searchYouTubeVideos } from '../services/youtubeApi';
-import { YouTubeVideo, FavoriteVideo } from '../types';
 
 interface DribbleMove {
   id: string;
@@ -22,23 +22,10 @@ const DribbleMoves: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<DribbleCategory | null>(null);
   const [selectedMove, setSelectedMove] = useState<DribbleMove | null>(null);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
-  const [favorites, setFavorites] = useState<FavoriteVideo[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
-  // Load favorites from localStorage
-  useEffect(() => {
-    const savedFavorites = localStorage.getItem('basketball-dribble-favorites');
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites));
-    }
-  }, []);
-
-  // Save favorites to localStorage
-  useEffect(() => {
-    localStorage.setItem('basketball-dribble-favorites', JSON.stringify(favorites));
-  }, [favorites]);
+  useEffect(() => {}, []);
 
   const dribbleCategories: DribbleCategory[] = [
     {
@@ -106,13 +93,13 @@ const DribbleMoves: React.FC = () => {
 
   const handleMoveSelect = async (move: DribbleMove) => {
     setSelectedMove(move);
-    setLoading(true);
-    setError(null);
-    
+    setLoadingVideos(true);
+    setVideoError(null);
+    setVideos([]);
     try {
-      const searchQuery = `how to do ${move.name} basketball dribble move tutorial`;
-      const response = await searchYouTubeVideos(searchQuery);
-      const videoData: YouTubeVideo[] = response.items.map(item => ({
+      const q = `${move.name} basketball dribble move tutorial`;
+      const response = await searchYouTubeVideos(q);
+      const videoData: YouTubeVideo[] = response.items.map((item: any) => ({
         id: item.id.videoId,
         title: item.snippet.title,
         thumbnail: item.snippet.thumbnails.medium.url,
@@ -120,35 +107,12 @@ const DribbleMoves: React.FC = () => {
         publishedAt: item.snippet.publishedAt,
         description: item.snippet.description
       }));
-      
       setVideos(videoData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search videos');
+    } catch (e: any) {
+      setVideoError(e?.message || 'Failed to load videos');
     } finally {
-      setLoading(false);
+      setLoadingVideos(false);
     }
-  };
-
-  const toggleFavorite = (video: YouTubeVideo) => {
-    const isAlreadyFavorite = favorites.some(fav => fav.videoId === video.id);
-    
-    if (isAlreadyFavorite) {
-      setFavorites(favorites.filter(fav => fav.videoId !== video.id));
-    } else {
-      const newFavorite: FavoriteVideo = {
-        id: Date.now().toString(),
-        videoId: video.id,
-        title: video.title,
-        thumbnail: video.thumbnail,
-        channelTitle: video.channelTitle,
-        savedAt: new Date().toISOString()
-      };
-      setFavorites([...favorites, newFavorite]);
-    }
-  };
-
-  const isFavorite = (videoId: string) => {
-    return favorites.some(fav => fav.videoId === videoId);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -160,19 +124,13 @@ const DribbleMoves: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const truncateTitle = (title: string, maxLength: number = 60) => {
-    return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
-  };
+  
 
   const goBack = () => {
     if (selectedMove) {
       setSelectedMove(null);
       setVideos([]);
-      setError(null);
+      setVideoError(null);
     } else if (selectedCategory) {
       setSelectedCategory(null);
     }
@@ -199,7 +157,7 @@ const DribbleMoves: React.FC = () => {
                   <div className="w-6 h-6 bg-white rounded-full"></div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">{category.name}</h3>
+                  <h3 className="font-semibold text-gray-900">{category.name}</h3>
                   <p className="text-sm text-gray-600">{category.moves.length} moves</p>
                 </div>
               </div>
@@ -320,140 +278,44 @@ const DribbleMoves: React.FC = () => {
         </div>
       )}
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-12">
-          <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Finding tutorial videos...</p>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-              <X size={12} className="text-white" />
+      {/* API-based Results Grid (links to YouTube) */}
+      {selectedMove && (
+        <div className="mb-8">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Youtube className="text-red-600" size={20} />
+            Tutorial Videos
+          </h4>
+          {loadingVideos && (
+            <div className="text-center py-8">
+              <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-gray-600">Loading videos...</p>
             </div>
-            <p className="text-red-700">{error}</p>
-          </div>
-          {error.includes('API key') && (
-            <p className="text-sm text-red-600 mt-2">
-              Please add your YouTube API key to the environment variables as VITE_YOUTUBE_API_KEY
-            </p>
           )}
-        </div>
-      )}
-
-      {/* Videos Grid */}
-      {!loading && videos.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {videos.map((video) => (
-            <div
-              key={video.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all"
-            >
-              <div className="relative">
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
-                  className="w-full h-48 object-cover"
-                />
-                <button
-                  onClick={() => setSelectedVideo(video)}
-                  className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+          {videoError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-red-700">{videoError}</div>
+          )}
+          {!loadingVideos && !videoError && videos.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videos.map((v) => (
+                <a
+                  key={v.id}
+                  href={`https://www.youtube.com/watch?v=${v.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow transition-shadow"
                 >
-                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
-                    <Play size={24} className="text-white ml-1" />
+                  <img src={v.thumbnail} alt={v.title} className="w-full h-40 object-cover" />
+                  <div className="p-3">
+                    <h5 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">{v.title}</h5>
+                    <p className="text-xs text-gray-600 flex items-center gap-1">
+                      <ExternalLink size={12} />
+                      {v.channelTitle}
+                    </p>
                   </div>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(video);
-                  }}
-                  className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                    isFavorite(video.id)
-                      ? 'bg-red-500 text-white'
-                      : 'bg-white bg-opacity-80 text-gray-600 hover:bg-opacity-100'
-                  }`}
-                >
-                  <Heart size={16} fill={isFavorite(video.id) ? 'currentColor' : 'none'} />
-                </button>
-              </div>
-              
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {truncateTitle(video.title)}
-                </h3>
-                <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
-                  <User size={14} />
-                  <span className="truncate">{video.channelTitle}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Clock size={14} />
-                  <span>{formatDate(video.publishedAt)}</span>
-                </div>
-              </div>
+                </a>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && videos.length === 0 && !error && selectedMove && (
-        <div className="text-center py-12">
-          <Youtube size={48} className="text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 mb-2">No tutorial videos found</p>
-          <p className="text-sm text-gray-400">Try selecting a different move or check your internet connection</p>
-        </div>
-      )}
-
-      {/* Video Player Modal */}
-      {selectedVideo && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                  <Youtube size={16} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 line-clamp-1">{selectedVideo.title}</h3>
-                  <p className="text-sm text-gray-600">{selectedVideo.channelTitle}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => toggleFavorite(selectedVideo)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isFavorite(selectedVideo.id)
-                      ? 'bg-red-100 text-red-600'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <Heart size={16} fill={isFavorite(selectedVideo.id) ? 'currentColor' : 'none'} />
-                </button>
-                <button
-                  onClick={() => setSelectedVideo(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-            
-            <div className="relative" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                src={`https://www.youtube.com/embed/${selectedVideo.id}?autoplay=1&rel=0`}
-                title={selectedVideo.title}
-                className="absolute inset-0 w-full h-full"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>

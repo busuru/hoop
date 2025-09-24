@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Play, ArrowLeft } from 'lucide-react';
-import { searchYouTubeVideos } from '../services/youtubeApi';
+import { Play, ArrowLeft, Youtube, ExternalLink } from 'lucide-react';
 import { YouTubeVideo } from '../types';
+import { searchYouTubeVideos } from '../services/youtubeApi';
 
 interface ShootingDrill {
   id: string;
@@ -175,13 +175,14 @@ const ShootingDrills: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<ShootingCategory | null>(null);
   const [selectedDrill, setSelectedDrill] = useState<ShootingDrill | null>(null);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const handleSelect = async (drill: ShootingDrill) => {
     setSelectedDrill(drill);
-    setLoading(true);
-    setError(null);
+    setLoadingVideos(true);
+    setVideoError(null);
+    setVideos([]);
     try {
       const q = `${drill.name} basketball shooting drill tutorial`;
       const response = await searchYouTubeVideos(q);
@@ -195,9 +196,9 @@ const ShootingDrills: React.FC = () => {
       }));
       setVideos(videoData);
     } catch (e: any) {
-      setError(e?.message || 'Failed to load videos');
+      setVideoError(e?.message || 'Failed to load videos');
     } finally {
-      setLoading(false);
+      setLoadingVideos(false);
     }
   };
 
@@ -205,7 +206,7 @@ const ShootingDrills: React.FC = () => {
     if (selectedDrill) {
       setSelectedDrill(null);
       setVideos([]);
-      setError(null);
+      setVideoError(null);
     } else if (selectedCategory) {
       setSelectedCategory(null);
     }
@@ -319,42 +320,45 @@ const ShootingDrills: React.FC = () => {
         </div>
       </div>
 
-      {loading && (
-        <div className="text-center py-12">
-          <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Finding tutorial videos...</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-700">{error}</p>
-        </div>
-      )}
-
-      {!loading && videos.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {videos.map((video) => (
-            <div key={video.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
-              <div className="relative">
-                <img src={video.thumbnail} alt={video.title} className="w-full h-48 object-cover" />
-                <button className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
-                    <Play size={24} className="text-white ml-1" />
-                  </div>
-                </button>
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{video.title}</h3>
-                <p className="text-sm text-gray-600 line-clamp-2">{video.description}</p>
-              </div>
+      {/* API-based Results Grid (links to YouTube) */}
+      {selectedDrill && (
+        <div className="mb-6">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Youtube className="text-red-600" size={20} />
+            Tutorial Videos
+          </h4>
+          {loadingVideos && (
+            <div className="text-center py-8">
+              <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-gray-600">Loading videos...</p>
             </div>
-          ))}
+          )}
+          {videoError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-red-700">{videoError}</div>
+          )}
+          {!loadingVideos && !videoError && videos.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videos.map((v) => (
+                <a
+                  key={v.id}
+                  href={`https://www.youtube.com/watch?v=${v.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow transition-shadow"
+                >
+                  <img src={v.thumbnail} alt={v.title} className="w-full h-40 object-cover" />
+                  <div className="p-3">
+                    <h5 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">{v.title}</h5>
+                    <p className="text-xs text-gray-600 flex items-center gap-1">
+                      <ExternalLink size={12} />
+                      {v.channelTitle}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-
-      {!loading && videos.length === 0 && !error && (
-        <div className="text-center py-12 text-gray-500">No tutorial videos found</div>
       )}
     </div>
   );
